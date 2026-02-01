@@ -44,7 +44,7 @@ const CreateEvent = () => {
   const createEventDraft = async () => {
     try{
       formData.registrationDeadline = new Date(formData.eventStartDate);
-      const response = await api.put('/api/users/createEvent',formData)
+      const response = await api.put('/api/events/createEvent',formData)
       const eventid = response.data.eventId
       navigate(`/editevent/${eventid}`);
     }

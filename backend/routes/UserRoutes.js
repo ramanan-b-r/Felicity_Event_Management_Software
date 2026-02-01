@@ -199,19 +199,6 @@ router.put("/deleteOrganizer",authMiddleware,async (req,res)=>{
     }
 });
 
-router.put('/createEvent',authMiddleware,async (req,res)=>{
-    if(req.user.role !=='organizer'){
-        return res.status(403).json({message:"Only organizers can create events"});
-    }
-    try{
-        const eventData = {...req.body, organizerId: req.user.id};
-        const event = new Event(eventData);
-        await event.save();
-        return res.status(200).json({eventId: event._id});
-    }
-    catch(err){
-        return res.status(500).json({message:"Server error",error: err.message});
-    }
-});
+
 module.exports = router;
 
