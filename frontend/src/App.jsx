@@ -13,6 +13,7 @@ import UserOnboarding from './pages/useronboarding.jsx'
 import AdminDashboard from './pages/admindashboard.jsx'
 import ManageOrganizers from './pages/manageorganizers.jsx'
 import CreateEvent from './pages/createevent.jsx'
+import EditEvent from './pages/editEvents.jsx'
 function App() {
   return(
     <BrowserRouter>
@@ -31,6 +32,7 @@ function App() {
         <Route path="/admindashboard" element={<AdminDashboard/>}/>
         <Route path="/manageorganizers" element={<ManageOrganizers/>}/>
         <Route path="/createevent" element={<CreateEvent/>}/>
+        <Route path="/editevent/:eventId" element={<EditEvent/>}/>
       </Routes>
     </BrowserRouter>
   )

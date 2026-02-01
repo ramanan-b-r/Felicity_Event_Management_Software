@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt  = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
-
+const Event = require('../models/Event');
 const createToken = (user) => {
     return jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: '1h',
@@ -148,7 +148,7 @@ router.post("/createOrganizer",authMiddleware,async (req,res)=>{
         console.error('Registration error:', err); 
         res.status(500).json({message:"Server error", error: err.message}); 
     }
- })
+ });
 router.get("/getOrganizers",authMiddleware,async (req,res)=>{
     if(req.user.role !=='admin'){
         return res.status(403).json({message:"Only admins can view organizers"});
@@ -199,5 +199,19 @@ router.put("/deleteOrganizer",authMiddleware,async (req,res)=>{
     }
 });
 
+router.put('/createEvent',authMiddleware,async (req,res)=>{
+    if(req.user.role !=='organizer'){
+        return res.status(403).json({message:"Only organizers can create events"});
+    }
+    try{
+        const eventData = {...req.body, organizerId: req.user.id};
+        const event = new Event(eventData);
+        await event.save();
+        return res.status(200).json({eventId: event._id});
+    }
+    catch(err){
+        return res.status(500).json({message:"Server error",error: err.message});
+    }
+});
 module.exports = router;
 
