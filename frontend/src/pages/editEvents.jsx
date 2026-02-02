@@ -108,7 +108,7 @@ const EditEvents = () => {
             </select>
             <br />
 
-            <label>Eligibility</label>
+            <label>Eligibility(All,IIIT,NON-IIIT)</label>
             <input 
                 name="eligibility" 
                 value={eventDetails.eligibility} 

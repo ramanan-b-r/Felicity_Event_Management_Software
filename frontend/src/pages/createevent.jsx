@@ -11,7 +11,7 @@ const CreateEvent = () => {
     eventStartDate: "",
     eventEndDate: "",
     eventStatus: "draft",
-    eligibility: "All are eligible",
+    eligibility: "All",
     registrationDeadline: "",
     registrationLimit: 0,
     registrationFee: 0,

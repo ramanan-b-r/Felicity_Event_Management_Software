@@ -70,10 +70,24 @@ router.get('/getEventsByOrganizer',authMiddleware,async (req,res)=>{
 
 });
 //open endpoint for all users
-router.get('/getAllEvents',authMiddleware,async (req,res)=>{
-    try{
-            const events = await Event.find({});
-            return res.status(200).json({events:events})
+router.post('/getAllEvents',authMiddleware,async (req,res)=>{
+    try{    
+            if(req.body.filters ===""){
+                    const events = await Event.find({});
+                    return res.status(200).json({events:events})
+
+
+            }
+            else{
+                const q = req.body.filters;
+                const events = await Event.find({
+                        $or: [
+                            { eventName: { $regex: q, $options: "i" } },
+                            { eventTags: { $regex: q, $options: "i" } }
+                        ]
+                });
+                return res.status(200).json({events:events})
+            }
     }
     catch(error){
         return res.status(500).json({message:"Server error",error:error.message})
