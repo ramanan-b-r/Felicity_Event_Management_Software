@@ -47,6 +47,7 @@ const EventSchema = new Schema({
         enum: ['draft', 'ongoing', 'published', 'closed'],
         default: 'draft'
     },
+    registeredCount: { type: Number, default: 0 },
 
     
     formFields: [FormFieldSchema], 

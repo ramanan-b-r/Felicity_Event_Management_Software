@@ -33,7 +33,7 @@ const navbar = () => {
                 <ul>
                     <li><Link to="/organizerdashboard">Dashboard</Link></li>
                     <li><Link to="/createevent">Create Event</Link></li>
-                    <li><Link to="/manage-events">Manage Events</Link></li>
+                    <li><Link to="/eventsorganized">Manage Events</Link></li>
                     <li><Link to="/profile">Profile</Link></li>
                     <li><Link to="/logout">Logout</Link></li>
                 </ul>
