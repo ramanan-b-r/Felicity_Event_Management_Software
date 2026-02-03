@@ -18,7 +18,7 @@ const UserSchema = new Schema({
     password: { type: String, required: true },
     
     organizername: { type: String, required: function() { return this.role === 'organizer'; } },
-    category: { type: [String], required: function() { return this.role === 'organizer'; } },
+    category: { type: String, required: function() { return this.role === 'organizer'; } },
     contactemail: { type: String, required: function() { return this.role === 'organizer'; } },
     description: { type: String, required: function() { return this.role === 'organizer'; } },
     status: { type: String, enum: ['active', 'archived'], default: 'active',required: function() { return this.role === 'organizer'; } },

@@ -175,6 +175,7 @@ const BrowseEvents = () => {
 				<p><strong>Registered Count:</strong> {event.registeredCount}</p>
 				<p><strong>Registration Fee:</strong> ₹{event.registrationFee}</p>
 				<p><strong>Tags:</strong> {event.eventTags?.join(', ') || 'None'}</p>
+				<p><strong>Event Category:</strong> {event.eventCategory}</p>
 				<button>View Event</button>
 			</div>
 		))}

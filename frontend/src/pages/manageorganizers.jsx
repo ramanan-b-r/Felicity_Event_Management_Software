@@ -5,7 +5,7 @@ const ManageOrganizers = () => {
 
 const user = JSON.parse(localStorage.getItem("userData") || "null");
     const [organizers, setOrganizers] = useState([]);
-    const [userForm, setUserForm] = useState({organizername:'',email:'',password:'',contactemail:'',description:'',category:[]});
+    const [userForm, setUserForm] = useState({organizername:'',email:'',password:'',contactemail:'',description:'',category:""});
     const getOrganizers = async () => { 
         try {
             const response = await api.get('/api/users/getOrganizers');
@@ -93,7 +93,7 @@ const user = JSON.parse(localStorage.getItem("userData") || "null");
             <input type="text" placeholder="Description" onChange={(e)=>{setUserForm({...userForm, description: e.target.value})}}/>
             <br />
             <label>Category: </label>
-            <input type="text" placeholder="Category(enter comma seperated)" onChange={(e)=>{setUserForm({...userForm, category: e.target.value.split(',')})}}/>
+            <input type="text" placeholder="Category" onChange={(e)=>{setUserForm({...userForm, category: e.target.value})}}/>
             <br />
             <button onClick={handleSubmit}>Create Organizer</button>
         </div>
@@ -104,7 +104,7 @@ const user = JSON.parse(localStorage.getItem("userData") || "null");
                 <p><strong>Contact Email:</strong> {organizer.contactemail}</p>
                 <p><strong>Password:</strong> {organizer.password}</p>
                 <p><strong>Description:</strong> {organizer.description}</p>
-                <p><strong>Category:</strong> {organizer.category.join(', ')}</p>
+                <p><strong>Category:</strong> {organizer.category}</p>
                 <p><strong>Status:</strong> {organizer.status}</p>
                 <button onClick={() => archiveaccount(organizer._id,organizer.status)}>Archive Account</button>
                 <button onClick={() => unarchiveaccount(organizer._id,organizer.status)}> UnArchive Account</button>

@@ -48,7 +48,7 @@ const EventSchema = new Schema({
         default: 'draft'
     },
     registeredCount: { type: Number, default: 0 },
-
+    eventCategory: { type: String, required: true },
     
     formFields: [FormFieldSchema], 
 
