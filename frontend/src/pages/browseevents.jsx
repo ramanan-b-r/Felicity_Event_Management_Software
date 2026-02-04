@@ -97,6 +97,10 @@ const BrowseEvents = () => {
 	useEffect(()=>{
 		getAllEvents()
 	},[])
+
+	const handleeventclick = (eventId) => {
+		window.location.href = `/participanteventview/${eventId}`;
+	}
 	if(events.length === 0){
 		return (
 			<div>
@@ -176,7 +180,7 @@ const BrowseEvents = () => {
 				<p><strong>Registration Fee:</strong> ₹{event.registrationFee}</p>
 				<p><strong>Tags:</strong> {event.eventTags?.join(', ') || 'None'}</p>
 				<p><strong>Event Category:</strong> {event.eventCategory}</p>
-				<button>View Event</button>
+				<button onClick={() => handleeventclick(event._id)}> View Event</button>
 			</div>
 		))}
 		</div>

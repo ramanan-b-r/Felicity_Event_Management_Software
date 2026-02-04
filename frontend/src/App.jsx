@@ -15,6 +15,7 @@ import ManageOrganizers from './pages/manageorganizers.jsx'
 import CreateEvent from './pages/createevent.jsx'
 import EditEvent from './pages/editEvents.jsx'
 import EventsOrganized from './pages/eventsorganized.jsx'
+import ParticipantEventView from './pages/participanteventview.jsx'
 function App() {
   return(
     <BrowserRouter>
@@ -35,6 +36,7 @@ function App() {
         <Route path="/createevent" element={<CreateEvent/>}/>
         <Route path="/editevent/:eventId" element={<EditEvent/>}/>
         <Route path="/eventsorganized" element={<EventsOrganized/>}/>
+        <Route path="/participanteventview/:eventId" element={<ParticipantEventView/>}/>
       </Routes>
     </BrowserRouter>
   )

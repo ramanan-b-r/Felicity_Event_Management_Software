@@ -1,0 +1,22 @@
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const { v4: uuidv4 } = require('uuid');
+
+
+const RegistrationSchema = new Schema({
+    eventId :{type:String, required:true},
+    participantId : {type:String, required:true},
+    formData : {type: mongoose.Schema.Types.Mixed},
+    //basicll using an universal identifier for ticket
+    ticketID : {type: String, required: true, default: uuidv4},
+    attendance:{
+        hasattended: {type: Boolean, default: false},
+        timestamps: {type: Date , default: null}
+
+    }
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model('Registration', RegistrationSchema);

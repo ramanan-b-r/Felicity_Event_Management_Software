@@ -9,3 +9,4 @@
 - my elibility criteria is all ,iiit,non-iiit
 			const filterValue = searchFilter !== null ? searchFilter : filter
 - the get events backend filter used for name search and tag search primarily
+- used uuid and modemailer

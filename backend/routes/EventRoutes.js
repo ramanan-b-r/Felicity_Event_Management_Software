@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Registration = require('../models/Registration');
 const jwt  = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
@@ -16,6 +17,7 @@ router.put('/createEvent',authMiddleware,async (req,res)=>{
         return res.status(200).json({eventId: event._id});
     }
     catch(err){
+        console.log(err);
         return res.status(500).json({message:"Server error",error: err.message});
     }
 });
@@ -94,5 +96,20 @@ router.post('/getAllEvents',authMiddleware,async (req,res)=>{
         return res.status(500).json({message:"Server error",error:error.message})
     }
 });
+
+router.get('/getEvent/:eventId',authMiddleware,async (req,res)=>{
+
+    if(req.user.role !== 'participant'){
+        return res.status(403).json({message:"Only participants can access events by category"});
+    }
+    try{
+        const events = await Event.findById(req.params.eventId);
+        return res.status(200).json({events:events});
+    }
+    catch(err){
+        return res.status(500).json({message:"Server error",error: err.message});
+    }   
+});
+
 
 module.exports = router;

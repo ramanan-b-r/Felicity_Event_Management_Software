@@ -19,7 +19,7 @@ const CreateEvent = () => {
     formFields: [],
     merchandiseConfig: {},
     eventDescription: "Fill Description Here",
-    eventCategory: ""
+    eventCategory: "Empty"
   })
   if (!user) {
     return <Navigate to="/" />
