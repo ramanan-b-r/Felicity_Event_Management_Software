@@ -90,6 +90,18 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
         if(event.eventStatus === 'completed'){
             return res.status(400).json({message:"Event has been completed"});
         }
+        
+        // Check eligibility
+        const user = await User.findById(req.user.id);
+        const eventEligibility = (event.eligibility || '').toLowerCase();
+        const userType = (user.participanttype || '').toLowerCase();
+        if(eventEligibility === 'iiit' && userType !== 'iiit'){
+            return res.status(403).json({message:"This event is only for IIIT students"});
+        }
+        if(eventEligibility === 'non-iiit' && userType !== 'non-iiit'){
+            return res.status(403).json({message:"This event is only for Non-IIIT participants"});
+        }
+        
         if(event.registrationDeadline < new Date()){
             return res.status(400).json({message:"Registration deadline has passed"});
         }

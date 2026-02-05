@@ -37,10 +37,10 @@ router.post('/login', async (req, res) => {
 //register route
 //ONLY for particpants NOT for organizers or admins
 router.post('/register',async (req,res)=>{
-    const {role,firstName,lastName,email,password,contactnumber,participanttype,collegename,interests}=req.body;
+    const {role,firstName,lastName,email,password,contactnumber,collegename,interests}=req.body;
     try{
         user=await User.register({
-            role:"participant",firstName,lastName,email,password,contactnumber,participanttype,collegename,interests
+            role:"participant",firstName,lastName,email,password,contactnumber,collegename,interests
 
         });
         const token = createToken(user)

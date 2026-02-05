@@ -33,10 +33,12 @@ UserSchema.statics.register = async function(userData) {
     if(userexists){
         throw new Error('User already exists');
     }
-    if (userData.participanttype === 'IIIT' && 
-        !userData.email.endsWith('@students.iiit.ac.in') && 
-        !userData.email.endsWith('@research.iiit.ac.in')) {
-        throw new Error('Only college email allowed');
+    
+    // Auto-assign participanttype based on email domain
+    if (userData.email.endsWith('@students.iiit.ac.in') || userData.email.endsWith('@research.iiit.ac.in')) {
+        userData.participanttype = 'IIIT';
+    } else {
+        userData.participanttype = 'Non-IIIT';
     }
 
     const salt = await bcrypt.genSalt(10);

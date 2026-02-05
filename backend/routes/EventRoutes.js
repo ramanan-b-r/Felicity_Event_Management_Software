@@ -34,6 +34,20 @@ router.get('/getEventbyId/:eventId',authMiddleware,async (req,res)=>{
         if(req.user.role === 'participant' && event.eventStatus !== 'published'){
             return res.status(403).json({message:"Event is not published yet"});
         }
+        
+        // Check eligibility for participants
+        if(req.user.role === 'participant'){
+            const user = await User.findById(req.user.id);
+            const eventEligibility = (event.eligibility || '').toLowerCase();
+            const userType = (user.participanttype || '').toLowerCase();
+            if(eventEligibility === 'iiit' && userType !== 'iiit'){
+                return res.status(403).json({message:"This event is only for IIIT students"});
+            }
+            if(eventEligibility === 'non-iiit' && userType !== 'non-iiit'){
+                return res.status(403).json({message:"This event is only for Non-IIIT participants"});
+            }
+        }
+        
         return res.status(200).json({event});
     }
     catch(err){
@@ -94,6 +108,15 @@ router.post('/getAllEvents',authMiddleware,async (req,res)=>{
             let query = {};
             if(req.user.role === 'participant'){
                 query.eventStatus = 'published';
+                
+                // Add eligibility filter for participants
+                const user = await User.findById(req.user.id);
+                const userType = (user.participanttype || '').toLowerCase();
+                if(userType === 'iiit'){
+                    query.$or = [{eligibility: {$regex: '^all$', $options: 'i'}}, {eligibility: {$regex: '^iiit$', $options: 'i'}}];
+                } else if(userType === 'non-iiit'){
+                    query.$or = [{eligibility: {$regex: '^all$', $options: 'i'}}, {eligibility: {$regex: '^non-iiit$', $options: 'i'}}];
+                }
             }
             if(req.body.filters ===""){
                     const events = await Event.find(query);
@@ -131,6 +154,18 @@ router.get('/getEvent/:eventId',authMiddleware,async (req,res)=>{
         if(events.eventStatus !== 'published'){
             return res.status(403).json({message:"Event is not published yet"});
         }
+        
+        // Check eligibility
+        const user = await User.findById(req.user.id);
+        const eventEligibility = (events.eligibility || '').toLowerCase();
+        const userType = (user.participanttype || '').toLowerCase();
+        if(eventEligibility === 'iiit' && userType !== 'iiit'){
+            return res.status(403).json({message:"This event is only for IIIT students"});
+        }
+        if(eventEligibility === 'non-iiit' && userType !== 'non-iiit'){
+            return res.status(403).json({message:"This event is only for Non-IIIT participants"});
+        }
+        
         return res.status(200).json({events:events});
     }
     catch(err){

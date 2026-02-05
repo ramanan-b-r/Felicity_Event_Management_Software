@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 const Register = () => {
-  const [formData, setFormData] = useState({role:'',firstName:'',lastName:'',email:'',password:'',contactnumber:'',participanttype:'',collegename:''});
+  const [formData, setFormData] = useState({role:'',firstName:'',lastName:'',email:'',password:'',contactnumber:'',collegename:''});
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -15,7 +15,7 @@ const Register = () => {
     const email = formData.email;
     const password = formData.password;
     try{
-            const response = await axios.post('/api/users/register', { email:formData.email, password: formData.password ,firstName:formData.firstName,lastName:formData.lastName,contactnumber:formData.contactnumber,participanttype:formData.participanttype,collegename:formData.collegename});
+            const response = await axios.post('/api/users/register', { email:formData.email, password: formData.password ,firstName:formData.firstName,lastName:formData.lastName,contactnumber:formData.contactnumber,collegename:formData.collegename});
             console.log("Registration successful:", response.data.user.email);
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('userData', JSON.stringify(response.data.user));
@@ -103,14 +103,6 @@ const Register = () => {
             />
         </div>
         <br />
-        <div>
-            
-            <select name="participanttype" onChange={handleChange}>
-                <option value="">Select Participant Type</option>
-                <option value="IIIT">IIIT</option>
-                <option value="Non-IIIT">Non-IIIT</option>
-            </select>        
-        </div>
         <button type="button" onClick={handleSubmit}>Login</button>
       </form>
 
