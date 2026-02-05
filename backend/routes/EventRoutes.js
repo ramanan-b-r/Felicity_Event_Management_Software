@@ -28,6 +28,12 @@ router.get('/getEventbyId/:eventId',authMiddleware,async (req,res)=>{
     const eventId = req.params.eventId;
     try{
         const event = await Event.findById(eventId);
+        if(!event){
+            return res.status(404).json({message:"Event not found"});
+        }
+        if(req.user.role === 'participant' && event.eventStatus !== 'published'){
+            return res.status(403).json({message:"Event is not published yet"});
+        }
         return res.status(200).json({event});
     }
     catch(err){
@@ -44,7 +50,17 @@ router.put('/updateEvent/:eventId',authMiddleware,async (req,res)=>{
         }
         if(event.organizerId.toString() !== req.user.id){
             return res.status(403).json({message:"You are not authorized to update this event"});
-        } 
+        }
+        const currentStatus = event.eventStatus;
+        const newStatus = req.body.eventStatus;
+        if((currentStatus === 'published' || currentStatus === 'ongoing' || currentStatus === 'closed' || currentStatus === 'completed') && newStatus === 'draft'){
+            return res.status(400).json({message:"Cannot change back to draft once published"});
+        }
+        if(['completed', 'ongoing', 'closed'].includes(currentStatus)){
+            const allowedUpdates = {eventStatus: req.body.eventStatus};
+            const updatedEvent = await Event.findByIdAndUpdate(eventId, allowedUpdates, { new: true });
+            return res.status(200).json({message:"Event updated successfully", event: updatedEvent});
+        }
         const updatedEvent = await Event.findByIdAndUpdate(eventId, req.body, { new: true });
         return res.status(200).json({message:"Event updated successfully", event: updatedEvent});
     }
@@ -75,8 +91,12 @@ router.get('/getEventsByOrganizer',authMiddleware,async (req,res)=>{
 //open endpoint for all users
 router.post('/getAllEvents',authMiddleware,async (req,res)=>{
     try{    
+            let query = {};
+            if(req.user.role === 'participant'){
+                query.eventStatus = 'published';
+            }
             if(req.body.filters ===""){
-                    const events = await Event.find({});
+                    const events = await Event.find(query);
                     return res.status(200).json({events:events})
 
 
@@ -84,6 +104,7 @@ router.post('/getAllEvents',authMiddleware,async (req,res)=>{
             else{
                 const q = req.body.filters;
                 const events = await Event.find({
+                        ...query,
                         $or: [
                             { eventName: { $regex: q, $options: "i" } },
                             { eventTags: { $regex: q, $options: "i" } }
@@ -104,12 +125,17 @@ router.get('/getEvent/:eventId',authMiddleware,async (req,res)=>{
     }
     try{
         const events = await Event.findById(req.params.eventId);
+        if(!events){
+            return res.status(404).json({message:"Event not found"});
+        }
+        if(events.eventStatus !== 'published'){
+            return res.status(403).json({message:"Event is not published yet"});
+        }
         return res.status(200).json({events:events});
     }
     catch(err){
         return res.status(500).json({message:"Server error",error: err.message});
     }   
 });
-
 
 module.exports = router;

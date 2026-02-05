@@ -60,9 +60,11 @@ const EditEvents = () => {
             await api.put(`/api/events/updateEvent/${eventId}`, eventDetails);
             alert("Event updated successfully");
         } catch (error) {
+            alert("Error updating event: " + error.response.data.message);
             console.error("Error updating event:", error);
         }
-    };  
+    };
+
     const needFormBuilder = ()=>{
         if(eventDetails.eventType !== 'normal'){
             return null;
@@ -85,7 +87,8 @@ const EditEvents = () => {
             <input 
                 name="eventName" 
                 value={eventDetails.eventName} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -93,7 +96,8 @@ const EditEvents = () => {
             <textarea 
                 name="eventDescription" 
                 value={eventDetails.eventDescription} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -102,6 +106,7 @@ const EditEvents = () => {
                 name="eventType" 
                 value={eventDetails.eventType} 
                 onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)}
             >
                 <option value="normal">Normal</option>
                 <option value="merchandise">Merchandise</option>
@@ -112,7 +117,8 @@ const EditEvents = () => {
             <input 
                 name="eligibility" 
                 value={eventDetails.eligibility} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -121,7 +127,8 @@ const EditEvents = () => {
                 type="datetime-local" 
                 name="registrationDeadline" 
                 value={eventDetails.registrationDeadline ? new Date(eventDetails.registrationDeadline).toISOString().slice(0, 16) : ''} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -130,7 +137,8 @@ const EditEvents = () => {
                 type="datetime-local" 
                 name="eventStartDate" 
                 value={eventDetails.eventStartDate ? new Date(eventDetails.eventStartDate).toISOString().slice(0, 16) : ''} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -139,7 +147,8 @@ const EditEvents = () => {
                 type="datetime-local" 
                 name="eventEndDate" 
                 value={eventDetails.eventEndDate ? new Date(eventDetails.eventEndDate).toISOString().slice(0, 16) : ''} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -148,7 +157,8 @@ const EditEvents = () => {
                 type="number" 
                 name="registrationLimit" 
                 value={eventDetails.registrationLimit} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -157,7 +167,8 @@ const EditEvents = () => {
                 type="number" 
                 name="registrationFee" 
                 value={eventDetails.registrationFee} 
-                onChange={changeDetails} 
+                onChange={changeDetails}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
             <br />
 
@@ -165,8 +176,23 @@ const EditEvents = () => {
             <input 
                 name="eventTags" 
                 value={eventDetails.eventTags?.join(',')} 
-                onChange={handleTagChange} 
+                onChange={handleTagChange}
+                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
             />
+            <br />
+
+            <label>Status</label>
+            <select 
+                name="eventStatus" 
+                value={eventDetails.eventStatus} 
+                onChange={changeDetails}
+            >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="closed">Closed</option>
+                <option value="completed">Completed</option>
+            </select>
             <br />
 
             {needFormBuilder()}

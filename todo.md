@@ -10,3 +10,4 @@ ig now that has to be implmented into search as well
 -oparticipant event page ability to follow organizer
 
 - unit testing on deadline valdiaiton system
+- do i need to worry about non-iiit students handling iiit events ahhh so much work

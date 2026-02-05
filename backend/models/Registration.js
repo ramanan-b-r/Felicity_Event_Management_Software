@@ -5,7 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 
 
 const RegistrationSchema = new Schema({
-    eventId :{type:String, required:true},
+    //made a ref object esseitally brcause populat i need
+    eventId :{type:mongoose.Schema.Types.ObjectId, ref:'Event', required:true},
     participantId : {type:String, required:true},
     formData : {type: mongoose.Schema.Types.Mixed},
     //basicll using an universal identifier for ticket

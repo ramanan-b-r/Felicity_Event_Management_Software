@@ -1,5 +1,4 @@
 
-
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -7,11 +6,63 @@ const Registration = require('../models/Registration');
 const jwt  = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+const QRCode = require('qrcode');
+
+dotenv.config();
+
+
+const sendConfirmationEmail = async (userEmail, ticket_id) => {
+    try{
+         const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: process.env.GMAIL_ID, 
+            pass: process.env.GMAIL_PASSWORD   
+        }
+        });
+        const qrgen = await QRCode.toDataURL(ticket_id)
+        const mailOptions = {
+                from: `"Event Management Team" <${process.env.GMAIL_ID}>`,
+                to: userEmail,
+                subject: 'Your Event Ticket',
+                html: `
+                    <h2>Registration Confirmed!</h2>
+                    <p>Your Ticket ID is: <strong>${ticket_id}</strong></p>
+                    <p>Scan this QR code at the entrance:</p>
+                    <br/>
+                    <img src="cid:ticket-qr-code" alt="QR Code" width="200" />
+                `,
+                attachments: [
+                    {
+                        filename: 'ticket.png',
+                        path: qrgen, 
+                        cid: 'ticket-qr-code'
+                    }
+                ]
+            };
+        transporter.sendMail(mailOptions,(err,info)=>{
+            if(err){
+                console.error("Error sending email:", err);
+            }
+            else{
+                console.log("Email sent successfully:", info.response);
+            }
+        });
+
+    }
+    catch(err){
+        console.error("Error", err);
+    }
+   
+}
 router.put('/eventRegistration',authMiddleware,async (req,res)=>{
 
     if(req.user.role !== 'participant'){
         return res.status(403).json({message:"Only participants can register for events"});
     }
+    // Check if the participant has already registered for the event
     try{
         const registration = await Registration.findOne({participantId: req.user.id,eventId: req.body.eventId});
         if(registration){
@@ -21,8 +72,24 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
     catch(err){
         return res.status(500).json({message:"server error",error: err.message});
     }
+    // Check if the event exists and if the registration deadline has passed
     try{
         const event = await Event.findById(req.body.eventId);
+        if(!event){
+            return res.status(404).json({message:"Event not found"});
+        }
+        if(event.eventStatus === 'draft'){
+            return res.status(400).json({message:"Event is not published yet"});
+        }
+        if(event.eventStatus === 'closed'){
+            return res.status(400).json({message:"Event registration is closed"});
+        }
+        if(event.eventStatus === 'ongoing'){
+            return res.status(400).json({message:"Event is already ongoing, registration closed"});
+        }
+        if(event.eventStatus === 'completed'){
+            return res.status(400).json({message:"Event has been completed"});
+        }
         if(event.registrationDeadline < new Date()){
             return res.status(400).json({message:"Registration deadline has passed"});
         }
@@ -37,6 +104,9 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
             if(!event){
                 return res.status(404).json({message:"Event not found"});
             }
+            if(event.status==='draft'){
+                return res.status(400).json({message:"Event is not published yet"});
+            }
             if(event.registeredCount >= event.registrationLimit){
                 return res.status(400).json({message:"Registration limit reached"});
             }
@@ -46,16 +116,41 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
         catch(err){
             return res.status(404).json({message:"Event not found"});
         }
+
+
         const registration = new Registration({
             eventId,
             participantId: req.user.id,
             formData
         });
         await registration.save();
+        const user = await User.findById(req.user.id);
+        const  useremail = user.email;
+        sendConfirmationEmail(useremail, registration.ticketID.toString());
         return res.status(200).json({message:" successful"});
     }
     catch(err){
         return res.status(500).json({message:"server error",error: err.message});
     }   
 });
+
+router.get('/getUpcomingEvents',authMiddleware,async (req,res)=>{
+    const user = req.user;
+    const userid = req.user.id
+    if(user.role !== 'participant'){    
+        return res.status(403).json({message:"Only participants can view upcoming events"});
+    }
+    try{
+            const registrations = await Registration.find({participantId: userid}).populate('eventId');
+            //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
+            const upcomingEvents = registrations.filter(reg => new Date(reg.eventId.eventStartDate) > new Date()).map(reg => reg.eventId);
+            console.log(registrations);
+            return res.status(200).json({events: upcomingEvents});
+    }   
+    catch(error){
+        return res.status(500).json({message:"server error",error: error.message});
+    }
+
+
+})
 module.exports = router;

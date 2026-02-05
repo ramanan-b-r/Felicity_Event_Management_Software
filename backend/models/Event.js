@@ -44,7 +44,7 @@ const EventSchema = new Schema({
     eventTags: [{ type: String }],
     eventStatus :{
         type: String,
-        enum: ['draft', 'ongoing', 'published', 'closed'],
+        enum: ['draft', 'ongoing', 'published', 'closed', 'completed'],
         default: 'draft'
     },
     registeredCount: { type: Number, default: 0 },
