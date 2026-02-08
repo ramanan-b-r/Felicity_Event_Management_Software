@@ -58,9 +58,13 @@ const sendPasswordResetEmail = async (organizerEmail, organizerName, newPassword
 }
 
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     try {
-        const user = await User.findOne({ email });
+        if (!role) {
+            return res.status(400).json({message: "Please select your role to login"});
+        }
+        
+        const user = await User.findOne({ email, role });
         if(!user){
             return res.status(400).json({message:"Invalid Credentials"});
 
@@ -194,6 +198,12 @@ router.post("/createOrganizer",authMiddleware,async (req,res)=>{
         return res.status(403).json({message:"Only admins can create organizers"});
     }
     try{
+        // Check if organizer with this email already exists
+        const existingOrganizer = await User.findOne({email: email, role: 'organizer'});
+        if(existingOrganizer){
+            return res.status(400).json({message:"Organizer with this email already exists"});
+        }
+        
         user=await User.register({
             role:"organizer",organizername,category,contactemail,description,email,password
 

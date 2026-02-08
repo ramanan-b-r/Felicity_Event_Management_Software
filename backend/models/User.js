@@ -14,7 +14,7 @@ const UserSchema = new Schema({
     contactnumber: { type: String, required: function() { return this.role === 'participant'; } },
     interests: { type: [String], default: [] },
     followedClubs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
     password: { type: String, required: true },
     
     organizername: { type: String, required: function() { return this.role === 'organizer'; } },
@@ -24,9 +24,13 @@ const UserSchema = new Schema({
     status: { type: String, enum: ['active', 'archived'], default: 'active',required: function() { return this.role === 'organizer'; } },
     
 });
+
+// Compound index ensuring Email + Role combination is unique
+UserSchema.index({ email: 1, role: 1 }, { unique: true });
+
 //middleware to hash password before savin
 UserSchema.statics.register = async function(userData) {
-    let userexists=await this.findOne({email: userData.email});
+    let userexists=await this.findOne({email: userData.email, role: userData.role});
     if(!validator.isEmail(userData.email)){
         throw new Error('Invalid email format');
     };

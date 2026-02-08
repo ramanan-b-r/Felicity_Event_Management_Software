@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', role: '' });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -14,8 +14,15 @@ const Login = () => {
         // Handle login logic here
     const email = formData.email;
     const password = formData.password;
+    const role = formData.role;
+    
+    if (!role) {
+        alert("Please select your role");
+        return;
+    }
+    
     try{
-            const response = await axios.post('/api/users/login', { email, password })
+            const response = await axios.post('/api/users/login', { email, password, role })
             console.log("Login successful:", response.data.user.email);
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('userData', JSON.stringify(response.data.user));
@@ -55,6 +62,22 @@ const Login = () => {
             onChange={handleChange}
             placeholder="Enter email"
           />
+        </div>
+        <br />
+        
+        <div>
+          <label>Role: </label>
+          <select
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Role</option>
+            <option value="participant">Participant</option>
+            <option value="organizer">Organizer</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
         <br />
 
