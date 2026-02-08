@@ -18,6 +18,7 @@ const MerchandiseSchema = new Schema({
     price: { type: Number },    
     variants: { type: String }, // comma-separated string
     stock: { type: Number, default: 0 }, 
+    itemsRemaining: { type: Number, default: 0 },
     purchaseLimit: { type: Number, default: 1 } 
 });
 

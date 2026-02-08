@@ -53,9 +53,9 @@ const ParticipantEventView = () => {
       return;
     }
 
-    // Check stock (simplified check - in real app you'd check server-side)
-    if (newSelected.length > (event.merchandiseConfig?.stock || 0)) {
-      setPurchaseError(`Only ${event.merchandiseConfig.stock} items available in stock`);
+    // Check remaining stock
+    if (newSelected.length > (event.merchandiseConfig?.itemsRemaining || 0)) {
+      setPurchaseError(`Only ${event.merchandiseConfig.itemsRemaining} items available in stock`);
       return;
     }
 
@@ -145,7 +145,7 @@ const ParticipantEventView = () => {
         <h2>Merchandise Details</h2>
         <p><strong>Item Name:</strong> {event.merchandiseConfig?.itemName}</p>
         <p><strong>Price:</strong> ₹{event.merchandiseConfig?.price}</p>
-        <p><strong>Stock:</strong> {event.merchandiseConfig?.stock}</p>
+        <p><strong>Items Available:</strong> {event.merchandiseConfig?.itemsRemaining}</p>
         <p><strong>Purchase Limit per person:</strong> {event.merchandiseConfig?.purchaseLimit}</p>
         
         {variants.length > 0 && (

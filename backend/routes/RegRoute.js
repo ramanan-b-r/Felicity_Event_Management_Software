@@ -132,9 +132,13 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
                     return res.status(400).json({message:`Cannot select more than ${purchaseLimit} items`});
                 }
                 
-                if(selectedVariants.length > stock) {
-                    return res.status(400).json({message:`Only ${stock} items available in stock`});
+                const itemsRemaining = event.merchandiseConfig.itemsRemaining || 0;
+                if(selectedVariants.length > itemsRemaining) {
+                    return res.status(400).json({message:`Only ${itemsRemaining} items available in stock`});
                 }
+                
+                // Decrement itemsRemaining for merchandise purchases
+                event.merchandiseConfig.itemsRemaining -= selectedVariants.length;
             }
             
             event.registeredCount += 1;
@@ -229,4 +233,94 @@ router.post('/getRegistrationTicket',authMiddleware,async(req,res)=>{
         return res.status(500).json({message:"server error",error: error.message});
     }
 })
+
+// Get event registrations for organizer
+router.get('/getEventRegistrations/:eventId', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can view registrations"});
+    }
+    const { eventId } = req.params;
+    try {
+        const event = await Event.findById(eventId);
+        if(!event || event.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({message: "Access denied"});
+        }
+        
+        const registrations = await Registration.find({eventId: eventId}).populate('eventId');
+        const participants = [];
+        
+        for(let reg of registrations) {
+            const user = await User.findById(reg.participantId);
+            participants.push({
+                name: user.firstName + ' ' + user.lastName,
+                email: user.email,
+                formData: reg.formData || {},
+                merchandiseSelection: reg.merchandiseSelection || [],
+                registeredAt: reg.createdAt
+            });
+        }
+        
+        res.status(200).json({participants});
+    } catch(error) {
+        res.status(500).json({message: "Server error"});
+    }
+});
+
+router.get('/getEventAnalytics/:eventId', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can view analytics"});
+    }
+    const { eventId } = req.params;
+    try {
+        const event = await Event.findById(eventId);
+        if(!event || event.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({message: "Access denied"});
+        }
+        if(event.eventType === 'normal'){
+            const registrations = await Registration.find({eventId: eventId});
+            const totalRegistrations = registrations.length;
+            let totalRevenue = totalRegistrations * event.registrationFee;
+            let unitsSold = totalRegistrations;
+            
+            res.status(200).json({
+                totalRegistrations,
+                totalRevenue,
+                unitsSold,
+                eventType: event.eventType
+            });
+        }
+        else if(event.eventType === 'merchandise'){
+            const registrations = await Registration.find({eventId: eventId});
+            const totalRegistrations = registrations.length;
+            let totalRevenue = 0;
+            let unitsSold = 0;
+            
+            for(let reg of registrations) {
+                if(reg.merchandiseSelection && reg.merchandiseSelection.length > 0) {
+                    unitsSold += reg.merchandiseSelection.length;
+                    totalRevenue += reg.merchandiseSelection.length * event.merchandiseConfig.price;
+                }
+            }
+            
+            const totalStock = event.merchandiseConfig.stock || 0;
+            const unitsNotSold = totalStock - unitsSold;
+            
+            res.status(200).json({
+                totalRegistrations,
+                totalRevenue,
+                unitsSold,
+                unitsNotSold,
+                totalStock,
+                eventType: event.eventType
+            });
+        }
+        else{
+            res.status(400).json({message: "Invalid event type"});
+        }
+        
+    } catch(error) {
+        res.status(500).json({message: "Server error"});
+    }
+});
+
 module.exports = router;

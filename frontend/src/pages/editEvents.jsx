@@ -29,6 +29,9 @@ const EditEvents = () => {
         eventDescription: "Fill Description Here",
 
     });
+    
+    const [participants, setParticipants] = useState([]);
+    const [analytics, setAnalytics] = useState(null);
 
     if (!user) {
         return <Navigate to="/" />
@@ -57,11 +60,61 @@ const EditEvents = () => {
         } finally {
         }
     }
+
+    const fetchRegistrations = async () => {
+        try {
+            const response = await api.get(`/api/registration/getEventRegistrations/${eventId}`);
+            setParticipants(response.data.participants);
+        } catch (error) {
+            console.log('Error fetching registrations: ' + error.message);
+        }
+    }
+
+    const fetchAnalytics = async () => {
+        try {
+            const response = await api.get(`/api/registration/getEventAnalytics/${eventId}`);
+            setAnalytics(response.data);
+            console.log("Analytics data:", response.data);
+        } catch (error) {
+            console.log('Error fetching analytics: ' + error.message);
+        }
+    }
+    
+    // Function to check if field should be disabled based on event status
+    const isFieldDisabled = (fieldName) => {
+        const status = eventDetails.eventStatus;
+        const registeredCount = eventDetails.registeredCount || 0;
+        const eventType = eventDetails.eventType;
+        
+        if(status === 'draft') {
+            return false; // All fields editable in draft
+        }
+        else if(status === 'published') {
+            // Only description, deadline, limit, status editable
+            const allowedFields = ['eventDescription', 'registrationDeadline', 'registrationLimit', 'eventStatus'];
+            
+            // Form fields only editable if no registrations
+            if(fieldName === 'formFields' && registeredCount === 0) return false;
+            
+            // Stock is editable for merchandise events
+            if(fieldName === 'merchandiseConfig' && eventType === 'merchandise') return false;
+            
+            return !allowedFields.includes(fieldName);
+        }
+        else if(['ongoing', 'completed', 'closed'].includes(status)) {
+            // Only status editable
+            return fieldName !== 'eventStatus';
+        }
+        
+        return false;
+    }
     const setFormFields = (newFields) => {
         setEventDetails({ ...eventDetails, formFields: newFields });
     };
     useEffect(() => {
         fetchEventDetails();
+        fetchRegistrations();
+        fetchAnalytics();
     }, [eventId]);
 
     const changeDetails = (e) => {
@@ -83,9 +136,34 @@ const EditEvents = () => {
             
             await api.put(`/api/events/updateEvent/${eventId}`, eventData);
             alert("Event updated successfully");
+            
+            // Refresh event details from server to get updated itemsRemaining
+            await fetchEventDetails();
         } catch (error) {
             alert("Error updating event: " + error.response.data.message);
             console.error("Error updating event:", error);
+        }
+    };
+
+    const downloadCSV = async () => {
+        try {
+            const response = await api.get(`/api/events/exportParticipants/${eventId}`, {
+                responseType: 'blob'
+            });
+            
+            // Create blob and download
+            const blob = new Blob([response.data], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${eventDetails.eventName}_participants.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            alert("Error downloading CSV: " + (error.response?.data?.message || error.message));
+            console.error("Error downloading CSV:", error);
         }
     };
 
@@ -97,7 +175,7 @@ const EditEvents = () => {
             <FormBuilder 
                     formFields={eventDetails.formFields} 
                     setFormFields={setFormFields} 
-                    isLocked={eventDetails.registeredCount > 0} 
+                    isLocked={isFieldDisabled('formFields')} 
             />
 
         )
@@ -112,7 +190,12 @@ const EditEvents = () => {
             return null;
         }
         return (
-            <MerchConfig currmerchconfig={eventDetails.merchandiseConfig} setMerchconfig={setMerchconfig} />
+            <MerchConfig 
+                currmerchconfig={eventDetails.merchandiseConfig} 
+                setMerchconfig={setMerchconfig} 
+                disabled={isFieldDisabled('merchandiseConfig')} 
+                eventStatus={eventDetails.eventStatus}
+            />
         )
     };
 
@@ -125,7 +208,7 @@ const EditEvents = () => {
                 name="eventName" 
                 value={eventDetails.eventName} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('eventName')} 
             />
             <br />
 
@@ -134,7 +217,7 @@ const EditEvents = () => {
                 name="eventDescription" 
                 value={eventDetails.eventDescription} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('eventDescription')} 
             />
             <br />
 
@@ -143,7 +226,7 @@ const EditEvents = () => {
                 name="eventType" 
                 value={eventDetails.eventType} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)}
+                disabled={isFieldDisabled('eventType')}
             >
                 <option value="normal">Normal</option>
                 <option value="merchandise">Merchandise</option>
@@ -155,7 +238,7 @@ const EditEvents = () => {
                 name="eligibility" 
                 value={eventDetails.eligibility} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('eligibility')} 
             />
             <br />
 
@@ -165,7 +248,7 @@ const EditEvents = () => {
                 name="registrationDeadline" 
                 value={eventDetails.registrationDeadline ? new Date(eventDetails.registrationDeadline).toISOString().slice(0, 16) : ''} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('registrationDeadline')} 
             />
             <br />
 
@@ -175,7 +258,7 @@ const EditEvents = () => {
                 name="eventStartDate" 
                 value={eventDetails.eventStartDate ? new Date(eventDetails.eventStartDate).toISOString().slice(0, 16) : ''} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('eventStartDate')} 
             />
             <br />
 
@@ -195,7 +278,7 @@ const EditEvents = () => {
                 name="registrationLimit" 
                 value={eventDetails.registrationLimit} 
                 onChange={changeDetails}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('registrationLimit')} 
             />
             <br />
 
@@ -214,7 +297,7 @@ const EditEvents = () => {
                 name="eventTags" 
                 value={eventDetails.eventTags?.join(',')} 
                 onChange={handleTagChange}
-                disabled={['completed', 'ongoing', 'closed'].includes(eventDetails.eventStatus)} 
+                disabled={isFieldDisabled('eventTags')} 
             />
             <br />
 
@@ -235,6 +318,52 @@ const EditEvents = () => {
             {needFormBuilder()}
             {needMerchConfig()}
             <button onClick={saveChanges}>Save Changes</button>
+            
+            <h2>Analytics</h2>
+            {analytics && (
+                <div>
+                    <p><strong>Total Registrations:</strong> {analytics.totalRegistrations}</p>
+                    <p><strong>Total Revenue:</strong> ₹{analytics.totalRevenue}</p>
+                    {analytics.eventType === 'merchandise' && (
+                        <div>
+                            <p><strong>Units Sold:</strong> {analytics.unitsSold}</p>
+                            <p><strong>Units Not Sold:</strong> {analytics.unitsNotSold}</p>
+                            <p><strong>Total Stock:</strong> {analytics.totalStock}</p>
+                        </div>
+                    )}
+                </div>
+            )}
+            
+            <h2>Participant Registrations</h2>
+            {participants.length > 0 && (
+                <button onClick={downloadCSV} style={{marginBottom: '10px'}}>
+                    Download Participants CSV
+                </button>
+            )}
+            {participants.length === 0 ? (
+                <p>No registrations yet</p>
+            ) : (
+                participants.map((participant, index) => (
+                    <div key={index} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
+                        <p><strong>Name:</strong> {participant.name}</p>
+                        <p><strong>Email:</strong> {participant.email}</p>
+                        <p><strong>Registered At:</strong> {new Date(participant.registeredAt).toLocaleDateString()}</p>
+                        
+                        {Object.keys(participant.formData || {}).length > 0 && (
+                            <div>
+                                <p><strong>Form Responses:</strong></p>
+                                {Object.entries(participant.formData).map(([question, answer]) => (
+                                    <p key={question}>{question}: {Array.isArray(answer) ? answer.join(', ') : answer}</p>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {participant.merchandiseSelection && participant.merchandiseSelection.length > 0 && (
+                            <p><strong>Merchandise Selected:</strong> {participant.merchandiseSelection.join(', ')}</p>
+                        )}
+                    </div>
+                ))
+            )}
         </div>
     )
 }
