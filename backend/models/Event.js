@@ -10,18 +10,13 @@ const FormFieldSchema = new Schema({
     },
     options: [{ type: String }], 
     required: { type: Boolean, default: false }
+
 });
 
 const MerchandiseSchema = new Schema({
     itemName: { type: String }, 
     price: { type: Number },    
-    images: [{ type: String }], 
-    
-    variants: [{
-        variantType: { type: String }, 
-        options: [{ type: String }]    
-    }],
-    
+    variants: { type: String }, // comma-separated string
     stock: { type: Number, default: 0 }, 
     purchaseLimit: { type: Number, default: 1 } 
 });

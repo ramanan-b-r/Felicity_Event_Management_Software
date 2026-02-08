@@ -10,3 +10,5 @@
 			const filterValue = searchFilter !== null ? searchFilter : filter
 - the get events backend filter used for name search and tag search primarily
 - used uuid and modemailer
+- lean datemtime conversion
+new Date(eventDetails.eventStartDate).toISOString().slice(0, 16)

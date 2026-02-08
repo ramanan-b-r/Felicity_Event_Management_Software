@@ -17,7 +17,13 @@ const CreateEvent = () => {
     registrationFee: 0,
     eventTags: [],
     formFields: [],
-    merchandiseConfig: {},
+    merchandiseConfig: {
+      itemName: "",
+      price: 0,
+      variants: "",
+      stock: 0,
+      purchaseLimit: 1
+    },
     eventDescription: "Fill Description Here",
     eventCategory: "Empty"
   })
@@ -45,7 +51,14 @@ const CreateEvent = () => {
   const createEventDraft = async () => {
     try{
       formData.registrationDeadline = new Date(formData.eventStartDate);
-      const response = await api.put('/api/events/createEvent',formData)
+      
+      // Only include merchandiseConfig for merchandise events
+      const eventData = {...formData};
+      if(eventData.eventType !== 'merchandise') {
+         eventData.merchandiseConfig = {};
+      }
+      
+      const response = await api.put('/api/events/createEvent', eventData)
       const eventid = response.data.eventId
       navigate(`/editevent/${eventid}`);
     }

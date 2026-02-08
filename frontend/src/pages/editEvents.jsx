@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import api from '../api/axiosmiddleware';
 import FormBuilder from '../components/dynamicformbuild';
+import MerchConfig from '../components/merchconfig'
 const EditEvents = () => {
     const { eventId } = useParams();
     const user = JSON.parse(localStorage.getItem("userData"));
@@ -18,7 +19,13 @@ const EditEvents = () => {
         registeredCount: 0,
         eventTags: [],
         formFields: [],
-        merchandiseConfig: {},
+        merchandiseConfig: {
+            itemName: "",
+            price: 0,
+            variants: "",
+            stock: 0,
+            purchaseLimit: 1
+        },
         eventDescription: "Fill Description Here",
 
     });
@@ -33,7 +40,18 @@ const EditEvents = () => {
     const fetchEventDetails = async () => {
         try {
             const response = await api.get(`/api/events/getEventbyId/${eventId}`);
-            setEventDetails(response.data.event);
+            const event = response.data.event;
+            
+            // Handle backwards compatibility for old variant format
+            if (event.merchandiseConfig?.variants && Array.isArray(event.merchandiseConfig.variants)) {
+                // Convert old format to new format
+                const variantString = event.merchandiseConfig.variants
+                    .map(v => v.options || []).flat().join(', ');
+                event.merchandiseConfig.variants = variantString;
+            }
+            
+            setEventDetails(event);
+            console.log(event);
         } catch (error) {
             console.log("Error fetching event details:", error);
         } finally {
@@ -57,7 +75,13 @@ const EditEvents = () => {
 
     const saveChanges = async () => {
         try {
-            await api.put(`/api/events/updateEvent/${eventId}`, eventDetails);
+            // Only include merchandiseConfig for merchandise events
+            const eventData = {...eventDetails};
+            if(eventData.eventType !== 'merchandise') {
+                 eventData.merchandiseConfig = {};
+            }
+            
+            await api.put(`/api/events/updateEvent/${eventId}`, eventData);
             alert("Event updated successfully");
         } catch (error) {
             alert("Error updating event: " + error.response.data.message);
@@ -76,6 +100,19 @@ const EditEvents = () => {
                     isLocked={eventDetails.registeredCount > 0} 
             />
 
+        )
+    };
+    const setMerchconfig = (MerchConfigfields) =>{
+        setEventDetails({...eventDetails,merchandiseConfig: MerchConfigfields})
+
+    }
+
+    const needMerchConfig = ()=>{
+        if(eventDetails.eventType !== 'merchandise'){
+            return null;
+        }
+        return (
+            <MerchConfig currmerchconfig={eventDetails.merchandiseConfig} setMerchconfig={setMerchconfig} />
         )
     };
 
@@ -194,8 +231,9 @@ const EditEvents = () => {
                 <option value="completed">Completed</option>
             </select>
             <br />
-
+            
             {needFormBuilder()}
+            {needMerchConfig()}
             <button onClick={saveChanges}>Save Changes</button>
         </div>
     )

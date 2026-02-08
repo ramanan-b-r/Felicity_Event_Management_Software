@@ -171,6 +171,18 @@ const Profile = () => {
 
         <p><strong>Interests:</strong> {user.interests?.join(', ')}</p>
         <button onClick={changeInterests}>Edit Interests</button>
+        
+        <p><strong>Followed Clubs:</strong></p>
+        {user.followedClubs && user.followedClubs.length > 0 ? (
+          <ul>
+            {user.followedClubs.map((club) => (
+              <li key={club._id}>{club.organizername}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No clubs followed yet</p>
+        )}
+        <p><em>To manage clubs, visit the Organizers page</em></p>
       </div>
     );
   } 

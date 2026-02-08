@@ -16,6 +16,9 @@ import CreateEvent from './pages/createevent.jsx'
 import EditEvent from './pages/editEvents.jsx'
 import EventsOrganized from './pages/eventsorganized.jsx'
 import ParticipantEventView from './pages/participanteventview.jsx'
+import ParticipantOrganizerView from './pages/participantorganizerview.jsx'
+import OrganizerPasswordReset from './pages/organizerpasswordreset.jsx'
+import AdminPasswordReset from './pages/adminpasswordreset.jsx'
 function App() {
   return(
     <BrowserRouter>
@@ -37,6 +40,9 @@ function App() {
         <Route path="/editevent/:eventId" element={<EditEvent/>}/>
         <Route path="/eventsorganized" element={<EventsOrganized/>}/>
         <Route path="/participanteventview/:eventId" element={<ParticipantEventView/>}/>
+        <Route path="/organizerview/:organizerId" element={<ParticipantOrganizerView/>}/>
+        <Route path="/organizerpasswordreset" element={<OrganizerPasswordReset/>}/>
+        <Route path="/passwordreset" element={<AdminPasswordReset/>}/>
       </Routes>
     </BrowserRouter>
   )

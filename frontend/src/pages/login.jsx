@@ -71,6 +71,10 @@ const Login = () => {
         <br />
 
         <button type="button" onClick={handleSubmit}>Login</button>
+        <br /><br />
+        <button type="button" onClick={() => window.location.href = '/organizerpasswordreset'}>
+          Organizer Password Reset
+        </button>
       </form>
 
       <p>

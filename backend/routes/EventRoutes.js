@@ -12,6 +12,13 @@ router.put('/createEvent',authMiddleware,async (req,res)=>{
     try{
         const organizer = await User.findById(req.user.id);
         const eventData = {...req.body, organizerId: req.user.id,eventCategory: organizer.category};
+        //backend ensuring that normal events cannot have merchandise config and merchandise events cannot have form fields even if organizer tries to send it in the request body
+        if(eventData.eventType === 'normal' && Object.keys(eventData.merchandiseConfig).length > 0){
+            return res.status(400).json({message:"Normal events cannot have merchandise configuration"});
+        }
+        if(eventData.eventType === 'merchandise' && eventData.formFields.length>0){
+            return res.status(400).json({message:"Merchandise events cannot have form fields"});
+        }
         const event = new Event(eventData);
         await event.save();
         return res.status(200).json({eventId: event._id});
@@ -59,11 +66,22 @@ router.put('/updateEvent/:eventId',authMiddleware,async (req,res)=>{
     const eventId = req.params.eventId;
     try{
         const event = await Event.findById(eventId);
+        //this is just backend secutiry to ensure no one can add form fields to merchandise events or merchandise config to normal events even if they try to send it in the request body
+        if(event.eventType=='normal' && req.body.merchandiseConfig && Object.keys(req.body.merchandiseConfig).length > 0){
+            return res.status(400).json({message:"Normal events cannot have merchandise configuration"});
+        }
+        //this is just backend secutiry to ensure no one can add form fields to merchandise events or merchandise config to normal events even if they try to send it in the request bod
+        if(event.eventType=='merchandise' && req.body.formFields && req.body.formFields.length > 0){
+            return res.status(400).json({message:" Merchandise events cannot have form fields"});
+        }
         if(!event){
             return res.status(404).json({message:"Event not found"});
         }
         if(event.organizerId.toString() !== req.user.id){
             return res.status(403).json({message:"You are not authorized to update this event"});
+        }
+        if(event.formFields !== req.body.formFields && (event.registeredCount > 0)){
+            return res.status(400).json({message:"Cannot change form fields after participants have registered"});
         }
         const currentStatus = event.eventStatus;
         const newStatus = req.body.eventStatus;
@@ -166,11 +184,47 @@ router.get('/getEvent/:eventId',authMiddleware,async (req,res)=>{
             return res.status(403).json({message:"This event is only for Non-IIIT participants"});
         }
         
+        
         return res.status(200).json({events:events});
     }
     catch(err){
         return res.status(500).json({message:"Server error",error: err.message});
-    }   
+    }
+});
+
+// Get events by organizer for participants
+router.get('/getEventsByOrganizerForParticipant/:organizerId', authMiddleware, async (req,res)=>{
+    if(req.user.role !== 'participant'){
+        return res.status(403).json({message:"Only participants can view organizer events"});
+    }
+    const { organizerId } = req.params;
+    try{
+        // Check if organizer exists
+        const organizer = await User.findById(organizerId);
+        if(!organizer || organizer.role !== 'organizer'){
+            return res.status(404).json({message:"Organizer not found"});
+        }
+        
+        let query = { organizerId: organizerId };
+        
+        // Only show published events to participants
+        query.eventStatus = 'published';
+        
+        // Add eligibility filter for participants
+        const user = await User.findById(req.user.id);
+        const userType = (user.participanttype || '').toLowerCase();
+        if(userType === 'iiit'){
+            query.$or = [{eligibility: {$regex: '^all$', $options: 'i'}}, {eligibility: {$regex: '^iiit$', $options: 'i'}}];
+        } else if(userType === 'non-iiit'){
+            query.$or = [{eligibility: {$regex: '^all$', $options: 'i'}}, {eligibility: {$regex: '^non-iiit$', $options: 'i'}}];
+        }
+        
+        const events = await Event.find(query);
+        return res.status(200).json({events:events});
+    }
+    catch(error){
+        return res.status(500).json({message:"Server error",error:error.message});
+    }
 });
 
 module.exports = router;

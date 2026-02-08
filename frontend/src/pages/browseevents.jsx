@@ -9,8 +9,10 @@ const BrowseEvents = () => {
 	const [allEvents,setAllEvents] = useState([])
 	const [filter,setFilter] = useState("")
 	const [selectedFilters,setSelectedFilters] = useState({})
+	const [selectedCategories,setSelectedCategories] = useState({})
 	const [eligibilityFilter,setEligibilityFilter] = useState("all")
 	const [eventTypeFilter,setEventTypeFilter] = useState("all")
+	const [categoryFilter,setCategoryFilter] = useState("all")
 	const [startDate,setStartDate] = useState("")
 	const [endDate,setEndDate] = useState("")
 	if (!user) {
@@ -23,18 +25,26 @@ const BrowseEvents = () => {
 
 			const eventList = response.data.events 
 			setAllEvents(eventList)
-			applyFilters(eventList, eligibilityFilter, eventTypeFilter, startDate, endDate)
+			applyFilters(eventList, eligibilityFilter, eventTypeFilter, categoryFilter, startDate, endDate)
 			
 			const tempobj = {}
+			const tempCategories = {}
 			for (const event of eventList) {
 				if (event.eventTags) {
 					for (const tag of event.eventTags) {
 						tempobj[tag] = true
 					}
 				}
+				if(event.eventCategory){
+					tempCategories[event.eventCategory] = true
+				}
 			}
+			
 			if(Object.keys(selectedFilters).length === 0){
 				setSelectedFilters(tempobj)
+			}
+			if(Object.keys(selectedCategories).length === 0){
+				setSelectedCategories(tempCategories)
 			}
 		}
 		catch(error){
@@ -43,7 +53,7 @@ const BrowseEvents = () => {
 
 	}
 
-	const applyFilters = (eventList, eligibility, eventType, start, end) => {
+	const applyFilters = (eventList, eligibility, eventType, category, start, end) => {
 		let filtered = eventList
 
 		if(eligibility !== "all"){
@@ -51,8 +61,13 @@ const BrowseEvents = () => {
 		}
 
 		if(eventType !== "all"){
-			filtered = filtered.filter(event => event.eventType === eventType)
+			filtered = filtered.filter(event => (event.eventType === eventType ))
 		}
+
+		if(category !== "all"){
+			filtered = filtered.filter(event => event.eventCategory && event.eventCategory === category)
+		}
+
 		if(start) filtered = filtered.filter(e => new Date(e.eventStartDate) >= new Date(start))
 		if(end) filtered = filtered.filter(e => new Date(e.eventEndDate) <= new Date(end))
 
@@ -72,13 +87,19 @@ const BrowseEvents = () => {
 	const handleEligibilityChange = (e) => {
 		const selectedEligibility = e.target.value
 		setEligibilityFilter(selectedEligibility)
-		applyFilters(allEvents, selectedEligibility, eventTypeFilter, startDate, endDate)
+		applyFilters(allEvents, selectedEligibility, eventTypeFilter, categoryFilter, startDate, endDate)
 	}
 
 	const handleEventTypeChange = (e) => {
 		const selectedType = e.target.value
 		setEventTypeFilter(selectedType)
-		applyFilters(allEvents, eligibilityFilter, selectedType, startDate, endDate)
+		applyFilters(allEvents, eligibilityFilter, selectedType, categoryFilter, startDate, endDate)
+	}
+
+	const handleCategoryChange = (e) => {
+		const selectedCategory = e.target.value
+		setCategoryFilter(selectedCategory)
+		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, selectedCategory, startDate, endDate)
 	}	
 	const handleDateChange = (e) => {
 		const {name, value} = e.target
@@ -92,7 +113,7 @@ const BrowseEvents = () => {
 			end = value
 			setEndDate(value)
 		}
-		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, start, end)
+		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, categoryFilter, start, end)
 	}
 	useEffect(()=>{
 		getAllEvents()
@@ -126,8 +147,13 @@ const BrowseEvents = () => {
 				<option value="all">All</option>
 				<option value="normal">Normal</option>
 				<option value="merchandise">Merchandise</option>
-			</select>
-			<label>Start Date:</label>
+			</select>		<label> Category: </label>
+		<select value={categoryFilter} onChange={handleCategoryChange}>
+			<option value="all">All</option>
+			{Object.keys(selectedCategories).map((cat)=>(
+				<option key={cat} value={cat}>{cat}</option>
+			))}
+		</select>			<label>Start Date:</label>
 			<input type="date" name="start" value={startDate} onChange={handleDateChange} />
 			<label>End Date:</label>
 			<input type="date" name="end" value={endDate} onChange={handleDateChange} />
@@ -160,8 +186,13 @@ const BrowseEvents = () => {
 				<option value="all">All</option>
 				<option value="normal">Normal</option>
 				<option value="merchandise">Merchandise</option>
-			</select>
-			<label>Start Date:</label>
+			</select>		<label> Category: </label>
+		<select value={categoryFilter} onChange={handleCategoryChange}>
+			<option value="all">All</option>
+			{Object.keys(selectedCategories).map((cat)=>(
+				<option key={cat} value={cat}>{cat}</option>
+			))}
+		</select>			<label>Start Date:</label>
 			<input type="date" name="start" value={startDate} onChange={handleDateChange} />
 			<label>End Date:</label>
 			<input type="date" name="end" value={endDate} onChange={handleDateChange} />

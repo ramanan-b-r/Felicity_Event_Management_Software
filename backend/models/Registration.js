@@ -15,7 +15,9 @@ const RegistrationSchema = new Schema({
         hasattended: {type: Boolean, default: false},
         timestamps: {type: Date , default: null}
 
-    }
+    },
+    //for merch
+    merchandiseSelection: {type: mongoose.Schema.Types.Mixed}
 }, {
     timestamps: true
 });

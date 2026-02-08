@@ -110,7 +110,7 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
         return res.status(404).json({message:"err"});
     }
     try{
-        const { eventId, formData } = req.body;
+        const { eventId, formData, selectedVariants } = req.body;
         try{
             const  event = await Event.findById(eventId);
             if(!event){
@@ -122,6 +122,21 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
             if(event.registeredCount >= event.registrationLimit){
                 return res.status(400).json({message:"Registration limit reached"});
             }
+            
+            // Additional checks for merchandise events
+            if(event.eventType === 'merchandise' && selectedVariants) {
+                const purchaseLimit = event.merchandiseConfig?.purchaseLimit || 1;
+                const stock = event.merchandiseConfig?.stock || 0;
+                
+                if(selectedVariants.length > purchaseLimit) {
+                    return res.status(400).json({message:`Cannot select more than ${purchaseLimit} items`});
+                }
+                
+                if(selectedVariants.length > stock) {
+                    return res.status(400).json({message:`Only ${stock} items available in stock`});
+                }
+            }
+            
             event.registeredCount += 1;
             await event.save();  
         }
@@ -129,12 +144,18 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
             return res.status(404).json({message:"Event not found"});
         }
 
-
-        const registration = new Registration({
+        const registrationData = {
             eventId,
             participantId: req.user.id,
             formData
-        });
+        };
+        
+        // Add merchandise selection if it's a merchandise event
+        if(selectedVariants && selectedVariants.length > 0) {
+            registrationData.merchandiseSelection = selectedVariants;
+        }
+
+        const registration = new Registration(registrationData);
         await registration.save();
         const user = await User.findById(req.user.id);
         const  useremail = user.email;
@@ -164,5 +185,48 @@ router.get('/getUpcomingEvents',authMiddleware,async (req,res)=>{
     }
 
 
+})
+router.get('/getRegisteredEvents',authMiddleware,async (req,res)=>{
+    const user = req.user;
+    const userid = req.user.id
+    if(user.role !== 'participant'){    
+        return res.status(403).json({message:"Only participants can view registered events"});
+    }
+    try{
+            const registrations = await Registration.find({participantId: userid}).populate('eventId');
+            //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
+            const registeredEvents = registrations.map(reg => reg.eventId);
+            console.log(registrations);
+            return res.status(200).json({events: registeredEvents});
+    }   
+    catch(error){
+        return res.status(500).json({message:"server error",error: error.message});
+    }
+
+})  
+
+router.post('/getRegistrationTicket',authMiddleware,async(req,res)=>{
+    const user = req.user
+    const userid = req.user.id
+    if(user.role!=='participant'){
+                return res.status(403).json({message:"Only participants can view registered events"});
+
+    }
+    try{
+        const eventid = req.body.eventId
+        const registration = await Registration.findOne({eventId:eventid,participantId:userid})
+        if(!registration){
+            return res.status(404).json({message:"Registration not found"});
+        }
+        const qrcode = await QRCode.toDataURL(registration.ticketID);
+        return res.status(200).json({ticketID: registration.ticketID,qrcode:qrcode});
+
+
+
+
+    }
+    catch(error){
+        return res.status(500).json({message:"server error",error: error.message});
+    }
 })
 module.exports = router;
