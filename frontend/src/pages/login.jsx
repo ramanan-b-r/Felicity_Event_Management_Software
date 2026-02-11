@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '', role: '' });
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://www.google.com/recaptcha/api.js';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -11,47 +19,56 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
 
-        // Handle login logic here
+    // Handle login logic here
     const email = formData.email;
     const password = formData.password;
     const role = formData.role;
-    
+
     if (!role) {
-        alert("Please select your role");
-        return;
+      alert("Please select your role");
+      return;
     }
-    
-    try{
-            const response = await axios.post('/api/users/login', { email, password, role })
-            console.log("Login successful:", response.data.user.email);
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('userData', JSON.stringify(response.data.user));
-            
-            // Role-based redirect
-            const userRole = response.data.user.role;
-            if (userRole === 'participant') {
-                window.location.href = '/participantdashboard';
-            } else if (userRole === 'organizer') {
-                window.location.href = '/organizerdashboard';
-            } else if(userRole === 'admin'){
-                window.location.href = '/admindashboard';
-            } else  {
-                // Default fallback for admin or other roles
-                window.location.href = '/admindashboard';
-            }
+
+    const captchaToken = window.grecaptcha.getResponse();
+    console.log("CAPTCHA Token:", captchaToken); // DEBUG
+    if (!captchaToken) {
+      alert("Please complete the CAPTCHA");
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/users/login', { email, password, role, captchaToken })
+      console.log("Login successful:", response.data.user.email);
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userData', JSON.stringify(response.data.user));
+
+      // Role-based redirect
+      const userRole = response.data.user.role;
+      if (userRole === 'participant') {
+        window.location.href = '/participantdashboard';
+      } else if (userRole === 'organizer') {
+        window.location.href = '/organizerdashboard';
+      } else if (userRole === 'admin') {
+        window.location.href = '/admindashboard';
+      } else {
+        // Default fallback for admin or other roles
+        window.location.href = '/admindashboard';
+      }
 
     }
-    catch(error){
-        console.error("There was an error!", error);
-        alert(`${error.response.data.message}`);
+    catch (error) {
+      console.error("Login error:", error);
+      console.error("Error response:", error.response?.data); // DEBUG
+      alert(`${error.response?.data?.message || 'Login failed'}`);
+      window.grecaptcha.reset();
     }
-        
+
 
   }
   return (
     <div>
       <h1>Login</h1>
-      
+
       <form>
         <div>
           <label>Email: </label>
@@ -64,7 +81,7 @@ const Login = () => {
           />
         </div>
         <br />
-        
+
         <div>
           <label>Role: </label>
           <select
@@ -91,6 +108,9 @@ const Login = () => {
             placeholder="Enter password"
           />
         </div>
+        <br />
+
+        <div className="g-recaptcha" data-sitekey="6Le7wGcsAAAAAF8J5L9Ba4eMfkvEErzS7PSS4n74"></div>
         <br />
 
         <button type="button" onClick={handleSubmit}>Login</button>
