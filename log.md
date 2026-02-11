@@ -14,4 +14,4 @@
 new Date(eventDetails.eventStartDate).toISOString().slice(0, 16)
 sort order
 downlaod csv fnction
-
+- FOR EVENT REG I AM INCREMNTIGN WHEN REJECTION INSTEAD OF DECREMENING WEN ACCEPTED

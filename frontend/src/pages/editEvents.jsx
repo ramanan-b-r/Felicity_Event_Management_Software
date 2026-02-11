@@ -151,10 +151,10 @@ const EditEvents = () => {
                 responseType: 'blob'
             });
             
-            // Create blob and download
             const blob = new Blob([response.data], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
+            //Here we esentially are creating a dummy <a> tag 
             link.href = url;
             link.download = `${eventDetails.eventName}_participants.csv`;
             document.body.appendChild(link);
@@ -164,6 +164,42 @@ const EditEvents = () => {
         } catch (error) {
             alert("Error downloading CSV: " + (error.response?.data?.message || error.message));
             console.error("Error downloading CSV:", error);
+        }
+    };
+
+    const handleApproveOrder = async (registrationId) => {
+        try {
+            await api.put('/api/registration/approveMerchandiseOrder', { registrationId });
+            alert('Order approved successfully');
+            fetchRegistrations();
+        } catch (error) {
+            alert('Error approving order: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const handleRejectOrder = async (registrationId) => {
+        const reason = prompt('Please provide a reason for rejection (optional):') || 'Payment verification failed';
+        try {
+            await api.put('/api/registration/rejectMerchandiseOrder', { registrationId, reason });
+            alert('Order rejected successfully');
+            fetchRegistrations();
+        } catch (error) {
+            alert('Error rejecting order: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const handleViewPaymentProof = async (registrationId) => {
+        try {
+            const response = await api.get(`/api/registration/getPaymentProof/${registrationId}`, {
+                responseType: 'blob'
+            });
+            
+            const file = new Blob([response.data], { type: 'image/jpeg' });
+            const fileURL = URL.createObjectURL(file);
+            window.open(fileURL, '_blank');
+        } catch (error) {
+            console.error(error);
+            alert("Error viewing payment proof. Ensure you are authorized.");
         }
     };
 
@@ -348,6 +384,41 @@ const EditEvents = () => {
                         <p><strong>Name:</strong> {participant.name}</p>
                         <p><strong>Email:</strong> {participant.email}</p>
                         <p><strong>Registered At:</strong> {new Date(participant.registeredAt).toLocaleDateString()}</p>
+                        
+                        {eventDetails.eventType === 'merchandise' && (
+                            <div>
+                                <p><strong>Order Status:</strong> 
+                                    <span>
+                                        {participant.status}
+                                    </span>
+                                </p>
+                                
+                                {participant.hasPaymentProof && (
+                                    <div>
+                                        <button onClick={() => handleViewPaymentProof(participant.registrationId)}>
+                                            View Payment Proof
+                                        </button>
+                                    </div>
+                                )}
+                                
+                                {participant.status === 'Pending' && (
+                                    <div style={{marginTop: '10px'}}>
+                                        <button 
+                                            onClick={() => handleApproveOrder(participant.registrationId)}
+                                           
+                                        >
+                                            Approve Order
+                                        </button>
+                                        <button 
+                                            onClick={() => handleRejectOrder(participant.registrationId)}
+                                            
+                                        >
+                                            Reject Order
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         
                         {Object.keys(participant.formData || {}).length > 0 && (
                             <div>

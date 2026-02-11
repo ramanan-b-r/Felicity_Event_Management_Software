@@ -17,7 +17,10 @@ const RegistrationSchema = new Schema({
 
     },
     //for merch
-    merchandiseSelection: {type: mongoose.Schema.Types.Mixed}
+    merchandiseSelection: {type: mongoose.Schema.Types.Mixed},
+    //for payment approval workflow
+    status: {type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Approved'},
+    paymentProof: {type: Buffer}
 }, {
     timestamps: true
 });

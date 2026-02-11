@@ -9,8 +9,38 @@ const Event = require('../models/Event');
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 const QRCode = require('qrcode');
+const multer = require('multer');
 
 dotenv.config();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'), false);
+        }
+    }
+});
+
+// Error handling middleware for multer
+const handleMulterError = (error, req, res, next) => {
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File too large. Maximum size is 5MB.' });
+        }
+        return res.status(400).json({ message: error.message });
+    } else if (error) {
+        return res.status(400).json({ message: error.message });
+    }
+    next();
+};
 
 
 const sendConfirmationEmail = async (userEmail, ticket_id) => {
@@ -57,7 +87,43 @@ const sendConfirmationEmail = async (userEmail, ticket_id) => {
     }
    
 }
-router.put('/eventRegistration',authMiddleware,async (req,res)=>{
+
+const sendRejectionEmail = async (userEmail, eventName, reason = "Payment verification failed") => {
+    try{
+         const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: process.env.GMAIL_ID, 
+            pass: process.env.GMAIL_PASSWORD   
+        }
+        });
+        const mailOptions = {
+                from: `"Event Management Team" <${process.env.GMAIL_ID}>`,
+                to: userEmail,
+                subject: `Registration Update - ${eventName}`,
+                html: `
+                    <h2>Registration Update</h2>
+                    <p>We're sorry to inform you that your registration for <strong>${eventName}</strong> has been rejected.</p>
+                    <p><strong>Reason:</strong> ${reason}</p>
+                    <p>If you believe this is an error, please contact the event organizers.</p>
+                    <p>Thank you for your understanding.</p>
+                `,
+            };
+        transporter.sendMail(mailOptions,(err,info)=>{
+            if(err){
+                console.error("Error sending rejection email:", err);
+            }
+            else{
+                console.log("Rejection email sent successfully:", info.response);
+            }
+        });
+
+    }
+    catch(err){
+        console.error("Error sending rejection email:", err);
+    }
+}
+router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), handleMulterError, async (req,res)=>{
 
     if(req.user.role !== 'participant'){
         return res.status(403).json({message:"Only participants can register for events"});
@@ -110,9 +176,21 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
         return res.status(404).json({message:"err"});
     }
     try{
-        const { eventId, formData, selectedVariants } = req.body;
+        let { eventId, selectedVariants } = req.body;
+        let formData = null;
+        
+        if (typeof selectedVariants === 'string') {
+            selectedVariants = JSON.parse(selectedVariants);
+        }
+        // Only parse formData for non-merchandise events
+        if (req.body.formData && typeof req.body.formData === 'string') {
+            formData = JSON.parse(req.body.formData);
+        } else if (req.body.formData) {
+            formData = req.body.formData;
+        }
+        
         try{
-            const  event = await Event.findById(eventId);
+            const event = await Event.findById(eventId);
             if(!event){
                 return res.status(404).json({message:"Event not found"});
             }
@@ -123,22 +201,25 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
                 return res.status(400).json({message:"Registration limit reached"});
             }
             
-            // Additional checks for merchandise events
-            if(event.eventType === 'merchandise' && selectedVariants) {
-                const purchaseLimit = event.merchandiseConfig?.purchaseLimit || 1;
-                const stock = event.merchandiseConfig?.stock || 0;
-                
-                if(selectedVariants.length > purchaseLimit) {
-                    return res.status(400).json({message:`Cannot select more than ${purchaseLimit} items`});
+            if(event.eventType === 'merchandise') {
+                if (!req.file) {
+                    return res.status(400).json({message:"Payment proof is required for merchandise orders"});
                 }
                 
-                const itemsRemaining = event.merchandiseConfig.itemsRemaining || 0;
-                if(selectedVariants.length > itemsRemaining) {
-                    return res.status(400).json({message:`Only ${itemsRemaining} items available in stock`});
+                if (selectedVariants && selectedVariants.length > 0) {
+                    const purchaseLimit = event.merchandiseConfig?.purchaseLimit;
+                    
+                    if(selectedVariants.length > purchaseLimit) {
+                        return res.status(400).json({message:`Cannot select more than ${purchaseLimit} items`});
+                    }
+                    
+                    const itemsRemaining = event.merchandiseConfig.itemsRemaining;
+                    if(selectedVariants.length > itemsRemaining) {
+                        return res.status(400).json({message:`Only ${itemsRemaining} items available in stock`});
+                    }
+                    
+                    event.merchandiseConfig.itemsRemaining -= selectedVariants.length;
                 }
-                
-                // Decrement itemsRemaining for merchandise purchases
-                event.merchandiseConfig.itemsRemaining -= selectedVariants.length;
             }
             
             event.registeredCount += 1;
@@ -150,21 +231,37 @@ router.put('/eventRegistration',authMiddleware,async (req,res)=>{
 
         const registrationData = {
             eventId,
-            participantId: req.user.id,
-            formData
+            participantId: req.user.id
         };
         
-        // Add merchandise selection if it's a merchandise event
-        if(selectedVariants && selectedVariants.length > 0) {
+        // Handle data based on event type
+        const event = await Event.findById(eventId);
+        if(event.eventType === 'merchandise') {
             registrationData.merchandiseSelection = selectedVariants;
+            registrationData.status = 'Pending';
+            if (req.file) {
+                registrationData.paymentProof = req.file.buffer;
+            }
+        } else {
+            registrationData.formData = formData;
+            registrationData.status = 'Approved';
         }
 
         const registration = new Registration(registrationData);
         await registration.save();
         const user = await User.findById(req.user.id);
-        const  useremail = user.email;
-        sendConfirmationEmail(useremail, registration.ticketID.toString());
-        return res.status(200).json({message:" successful"});
+        const useremail = user.email;
+        
+        // Only send confirmation email for non-merchandise events or approved registrations
+        if(event.eventType !== 'merchandise') {
+            sendConfirmationEmail(useremail, registration.ticketID.toString(), event.eventName);
+        }
+        
+        const message = event.eventType === 'merchandise' 
+            ? "Registration submitted! Your order is pending payment verification by the organizer." 
+            : "Registration successful!";
+            
+        return res.status(200).json({message: message});
     }
     catch(err){
         return res.status(500).json({message:"server error",error: err.message});
@@ -218,10 +315,16 @@ router.post('/getRegistrationTicket',authMiddleware,async(req,res)=>{
     }
     try{
         const eventid = req.body.eventId
-        const registration = await Registration.findOne({eventId:eventid,participantId:userid})
+        const registration = await Registration.findOne({eventId:eventid,participantId:userid}).populate('eventId')
         if(!registration){
             return res.status(404).json({message:"Registration not found"});
         }
+        
+        // Check if registration is approved (only approved registrations get QR codes)
+        if(registration.status !== 'Approved'){
+            return res.status(400).json({message:`Your registration is ${registration.status}. QR code is only available for approved registrations.`});
+        }
+        
         const qrcode = await QRCode.toDataURL(registration.ticketID);
         return res.status(200).json({ticketID: registration.ticketID,qrcode:qrcode});
 
@@ -252,17 +355,49 @@ router.get('/getEventRegistrations/:eventId', authMiddleware, async (req, res) =
         for(let reg of registrations) {
             const user = await User.findById(reg.participantId);
             participants.push({
+                registrationId: reg._id,
                 name: user.firstName + ' ' + user.lastName,
                 email: user.email,
                 formData: reg.formData || {},
                 merchandiseSelection: reg.merchandiseSelection || [],
-                registeredAt: reg.createdAt
+                registeredAt: reg.createdAt,
+                status: reg.status || 'Approved',
+                hasPaymentProof: !!reg.paymentProof
             });
         }
         
         res.status(200).json({participants});
     } catch(error) {
         res.status(500).json({message: "Server error"});
+    }
+});
+
+router.get('/getPaymentProof/:registrationId', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can view payment proofs"});
+    }
+    
+    const { registrationId } = req.params;
+    
+    try {
+        const registration = await Registration.findById(registrationId).populate('eventId');
+        if(!registration) {
+            return res.status(404).json({message: "Registration not found"});
+        }
+        
+        const event = registration.eventId;
+        if(event.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({message: "Access denied"});
+        }
+        
+        if(!registration.paymentProof) {
+            return res.status(404).json({message: "No payment proof found"});
+        }
+        
+        res.set('Content-Type', 'image/jpeg');
+        res.send(registration.paymentProof);
+    } catch(error) {
+        return res.status(500).json({message: "Server error", error: error.message});
     }
 });
 
@@ -320,6 +455,81 @@ router.get('/getEventAnalytics/:eventId', authMiddleware, async (req, res) => {
         
     } catch(error) {
         res.status(500).json({message: "Server error"});
+    }
+});
+
+router.put('/approveMerchandiseOrder', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can approve orders"});
+    }
+    
+    const { registrationId } = req.body;
+    
+    try {
+        const registration = await Registration.findById(registrationId).populate('eventId').populate('participantId');
+        if(!registration) {
+            return res.status(404).json({message: "Registration not found"});
+        }
+        
+        const event = registration.eventId;
+        if(event.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({message: "Access denied"});
+        }
+        
+        if(registration.status !== 'Pending') {
+            return res.status(400).json({message: "eRROR"});
+        }
+        
+        registration.status = 'Approved';
+        await registration.save();
+        
+        const user = registration.participantId;
+        sendConfirmationEmail(user.email, registration.ticketID.toString(), event.eventName);
+        
+        return res.status(200).json({message: "Order approved successfully"});
+    } catch(error) {
+        return res.status(500).json({message: "Server error", error: error.message});
+    }
+});
+
+router.put('/rejectMerchandiseOrder', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can reject orders"});
+    }
+    
+    const { registrationId, reason } = req.body;
+    
+    try {
+        const registration = await Registration.findById(registrationId).populate('eventId').populate('participantId');
+        if(!registration) {
+            return res.status(404).json({message: "Registration not found"});
+        }
+        
+        const event = registration.eventId;
+        if(event.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({message: "Access denied"});
+        }
+        
+        if(registration.status !== 'Pending') {
+            return res.status(400).json({message: "Order is not in pending status"});
+        }
+        
+        registration.status = 'Rejected';
+        await registration.save();
+        
+        if(registration.merchandiseSelection && registration.merchandiseSelection.length > 0) {
+            event.merchandiseConfig.itemsRemaining += registration.merchandiseSelection.length;
+            event.registeredCount -= 1;
+            await event.save();
+        }
+        
+        // Send rejection email
+        const user = registration.participantId;
+        sendRejectionEmail(user.email, event.eventName, reason);
+        
+        return res.status(200).json({message: "Order rejected successfully"});
+    } catch(error) {
+        return res.status(500).json({message: "Server error", error: error.message});
     }
 });
 

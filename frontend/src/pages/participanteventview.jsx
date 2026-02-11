@@ -12,6 +12,7 @@ const ParticipantEventView = () => {
   const [formData, setFormData] = useState({});
   const [selectedVariants, setSelectedVariants] = useState([]);
   const [purchaseError, setPurchaseError] = useState("");
+  const [paymentProof, setPaymentProof] = useState(null);
   const getEventDetails = async () => {
     try {
       const response = await api.get(`/api/events/getEvent/${eventId}`);
@@ -29,13 +30,32 @@ const ParticipantEventView = () => {
     setFormData({...formData, [fieldLabel]: value});
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    
+      setPaymentProof(file);
+    
+  };
+
   const handleSubmit = async () => {
     try {
-      const registrationData = event.eventType === 'merchandise' 
-        ? {eventId, selectedVariants, formData} 
-        : {eventId, formData};
-      const response = await api.put('/api/registration/eventRegistration', registrationData);
-      alert(`Registration submitted! ${response.data.message}`);
+      if (event.eventType === 'merchandise') {
+        if (!paymentProof) {
+          alert('Please upload payment proof for merchandise orders');
+          return;
+        }
+        const formDataToSend = new FormData();
+        formDataToSend.append('eventId', eventId);
+        formDataToSend.append('selectedVariants', JSON.stringify(selectedVariants));
+        formDataToSend.append('paymentProof', paymentProof);
+        
+        const response = await api.put('/api/registration/eventRegistration', formDataToSend);
+        alert(`Registration submitted! ${response.data.message}`);
+      } else {
+        const registrationData = {eventId, formData};
+        const response = await api.put('/api/registration/eventRegistration', registrationData);
+        alert(`Registration submitted! ${response.data.message}`);
+      }
     } catch (error) {
       alert(error.response.data.message );
       console.log(error);
@@ -167,6 +187,18 @@ const ParticipantEventView = () => {
             <p>Selected: {selectedVariants.join(', ')}</p>
           </div>
         )}
+        
+        <div>
+          <h3>Payment Proof</h3>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleImageUpload}
+            required
+          />
+          {paymentProof && <p>File selected: {paymentProof.name}</p>}
+          
+        </div>
         
         <button 
           onClick={handleSubmit}
