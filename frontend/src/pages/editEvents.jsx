@@ -3,6 +3,8 @@ import { Navigate, useParams } from 'react-router-dom';
 import api from '../api/axiosmiddleware';
 import FormBuilder from '../components/dynamicformbuild';
 import MerchConfig from '../components/merchconfig'
+import { Html5QrcodeScanner } from 'html5-qrcode';
+
 const EditEvents = () => {
     const { eventId } = useParams();
     const user = JSON.parse(localStorage.getItem("userData"));
@@ -115,7 +117,54 @@ const EditEvents = () => {
         fetchEventDetails();
         fetchRegistrations();
         fetchAnalytics();
+
+        let html5QrcodeScanner;
+        async function onScanSuccess(decodedText, decodedResult) {
+
+    console.log(`Scan result: ${decodedText}`, decodedResult);
+    
+    // Pause scanner and show confirmation
+    html5QrcodeScanner.pause();
+    
+    // Show confirmation popup
+    const confirmAttendance = confirm("Do you want to mark this participant as present?");
+    
+    if (confirmAttendance) {
+        try{
+            const response = await api.post('/api/registration/markattendance', {ticketID: decodedText })
+            alert(response.data.message)
+            // Refresh registrations to update attendance list
+            fetchRegistrations();
+        }
+        catch(error){
+            alert("Error marking attendance: " + (error.response?.data?.message || error.message));
+            console.error("Error marking attendance:", error);
+        }
+    } else {
+        alert("Attendance marking cancelled");
+    }
+    
+    try{
+        await html5QrcodeScanner.clear();
+    }
+    catch(error){
+        console.error("Error clearing QR code scanner:", error);
+    }
+
+    }
+
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 30, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+    return () => {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(error => {
+                    console.log("err", error);
+                });
+            }
+        }
     }, [eventId]);
+    
+
 
     const changeDetails = (e) => {
         setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
@@ -236,7 +285,9 @@ const EditEvents = () => {
     };
 
     return (
+        
         <div>
+            <div style={{width: "500px"}} id="reader"></div>
             <h2>Edit Event: {eventDetails.eventName}</h2>
 
             <label>Event Name</label>
@@ -434,6 +485,30 @@ const EditEvents = () => {
                         )}
                     </div>
                 ))
+            )}
+            
+            <h2>Live Attendance Dashboard</h2>
+            {participants.length === 0 ? (
+                <p>No registrations yet</p>
+            ) : (
+                <div>
+                    <div style={{marginBottom: '20px'}}>
+                        <p><strong>Total Registered:</strong> {participants.length}</p>
+                        <p><strong>Attended:</strong> {participants.filter(p => p.hasAttended).length}</p>
+                        <p><strong>Not Yet Scanned:</strong> {participants.filter(p => !p.hasAttended).length}</p>
+                    </div>
+                    
+                    {participants.map((participant, index) => (
+                        <div key={index} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0', backgroundColor: participant.hasAttended ? '#e6ffe6' : '#ffe6e6'}}>
+                            <p><strong>Name:</strong> {participant.name}</p>
+                            <p><strong>Email:</strong> {participant.email}</p>
+                            <p><strong>Attended:</strong> {participant.hasAttended ? 'TRUE' : 'FALSE'}</p>
+                            {participant.hasAttended && participant.attendedAt && (
+                                <p><strong>Attended At:</strong> {new Date(participant.attendedAt).toLocaleString()}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
             )}
         </div>
     )

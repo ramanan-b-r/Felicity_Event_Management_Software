@@ -89,7 +89,6 @@ router.put('/updateEvent/:eventId',authMiddleware,async (req,res)=>{
         const currentStatus = event.eventStatus;
         const newStatus = req.body.eventStatus;
         
-        // Status transition rules
         if((currentStatus === 'published' || currentStatus === 'ongoing' || currentStatus === 'closed' || currentStatus === 'completed') && newStatus === 'draft'){
             return res.status(400).json({message:"Cannot change back to draft once published"});
         }
@@ -118,18 +117,15 @@ router.put('/updateEvent/:eventId',authMiddleware,async (req,res)=>{
                 }
             }
             
-            // Block form field changes if there are registrations
             if(req.body.formFields && JSON.stringify(event.formFields) !== JSON.stringify(req.body.formFields) && event.registeredCount > 0){
                 return res.status(400).json({message:"Cannot change form fields after participants have registered"});
             }
             if(req.body.formFields && event.registeredCount === 0) allowedUpdates.formFields = req.body.formFields;
         }
         else if(['ongoing', 'completed', 'closed'].includes(currentStatus)) {
-            // Ongoing/Completed: Only status change
             if(req.body.eventStatus) allowedUpdates.eventStatus = req.body.eventStatus;
         }
         
-        // Handle stock updates for merchandise events
         if(event.eventType === 'merchandise' && allowedUpdates.merchandiseConfig && allowedUpdates.merchandiseConfig.stock !== undefined) {
             const currentStock = event.merchandiseConfig?.stock || 0;
             const currentRemaining = event.merchandiseConfig?.itemsRemaining || 0;
@@ -343,7 +339,7 @@ router.get('/exportParticipants/:eventId', authMiddleware, async (req, res) => {
             const regDate = new Date(registration.createdAt).toLocaleDateString();
             const paymentStatus = registration.formData?.paymentStatus || 'Pending';
             const participantType = participant.participanttype || 'N/A';
-            const attendance = registration.attendance?.hasattended ? 'Present' : 'Absent';
+            const attendance = registration.hasattended ? 'Present' : 'Absent';
             
             let row = [name, email, regDate, paymentStatus, participantType, attendance];
             

@@ -14,4 +14,5 @@ THE ENTIRE MERCH THING CAN BE DONE VERY SIMPLY WE COPLICATEDDDDD
 - for dynamci form builder froend sside ig need to check requiref field
 - how did we do the merhcansie fronend learn ig tyy
 
-- admin passwords auto generate option
+- admin passwords auto generate optiona
+- handle attendance in csv export 

@@ -43,7 +43,7 @@ const handleMulterError = (error, req, res, next) => {
 };
 
 
-const sendConfirmationEmail = async (userEmail, ticket_id) => {
+const sendConfirmationEmail = async (userEmail, ticket_id, eventName = "Event") => {
     try{
          const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -52,22 +52,23 @@ const sendConfirmationEmail = async (userEmail, ticket_id) => {
             pass: process.env.GMAIL_PASSWORD   
         }
         });
-        const qrgen = await QRCode.toDataURL(ticket_id)
+        const qrBuffer = await QRCode.toBuffer(ticket_id);
         const mailOptions = {
                 from: `"Event Management Team" <${process.env.GMAIL_ID}>`,
                 to: userEmail,
-                subject: 'Your Event Ticket',
+                subject: `Your Event Ticket - ${eventName}`,
                 html: `
                     <h2>Registration Confirmed!</h2>
+                    <p>You are registered for: <strong>${eventName}</strong></p>
                     <p>Your Ticket ID is: <strong>${ticket_id}</strong></p>
                     <p>Scan this QR code at the entrance:</p>
                     <br/>
-                    <img src="cid:ticket-qr-code" alt="QR Code" width="200" />
+                    <img src="cid:ticket-qr-code" alt="QR Code" width="200" style="width:200px; height:200px;"/>
                 `,
                 attachments: [
                     {
                         filename: 'ticket.png',
-                        path: qrgen, 
+                        content: qrBuffer,
                         cid: 'ticket-qr-code'
                     }
                 ]
@@ -362,7 +363,9 @@ router.get('/getEventRegistrations/:eventId', authMiddleware, async (req, res) =
                 merchandiseSelection: reg.merchandiseSelection || [],
                 registeredAt: reg.createdAt,
                 status: reg.status || 'Approved',
-                hasPaymentProof: !!reg.paymentProof
+                hasPaymentProof: !!reg.paymentProof,
+                hasAttended: reg.hasattended,
+                attendedAt: reg.attendanceTimestamps
             });
         }
         
@@ -533,4 +536,29 @@ router.put('/rejectMerchandiseOrder', authMiddleware, async (req, res) => {
     }
 });
 
+router.post('/markattendance', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can mark attendance"});
+    }
+    
+    const { ticketID } = req.body;
+    const registration = await Registration.findOne({ ticketID : ticketID })
+    if(!registration) {
+        return res.status(404).json({message: "Registration not found"});
+    }
+    
+    const event = await Event.findById(registration.eventId);
+    if(event.organizerId.toString() !== req.user.id) {
+        return res.status(403).json({message: "Access denied"});
+    }
+    if(registration.hasattended){
+        return res.status(400).json({message: "Attendance already marked for this registration"});
+    }
+    
+    registration.hasattended = true;
+    registration.attendanceTimestamps = new Date();
+    await registration.save();
+    
+    return res.status(200).json({message: "Attendance marked successfully"});
+})
 module.exports = router;
