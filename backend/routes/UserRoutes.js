@@ -72,6 +72,54 @@ const verifyCaptcha = async (token) => {
     }
 }
 
+const generatePassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+        password += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return password;
+}
+
+const sendCredentialsEmail = async (organizerEmail, organizerName, loginEmail, password) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.GMAIL_ID,
+                pass: process.env.GMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: `"Event Management Team" <${process.env.GMAIL_ID}>`,
+            to: organizerEmail,
+            subject: 'Your Organizer Account Credentials',
+            html: `
+                <h2>Welcome to Event Management System</h2>
+                <p>Dear ${organizerName},</p>
+                <p>Your organizer account has been created successfully.</p>
+                <p><strong>Login Email:</strong> ${loginEmail}</p>
+                <p><strong>Password:</strong> ${password}</p>
+                <p>Please login and change your password to something memorable.</p>
+                <br/>
+                <p>Best regards,</p>
+                <p>Event Management Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (err, info) => {
+            if (err) {
+                console.error("Error sending credentials email:", err);
+            } else {
+                console.log("Credentials email sent:", info.response);
+            }
+        });
+    } catch (err) {
+        console.error("Error sending credentials email:", err);
+    }
+}
+
 router.post('/login', async (req, res) => {
     const { email, password, role, captchaToken } = req.body;
     try {
@@ -225,24 +273,40 @@ router.put('/updateProfile', authMiddleware, async (req, res) => {
 }
 );
 router.post("/createOrganizer", authMiddleware, async (req, res) => {
-
-    const { organizername, category, contactemail, description, email, password } = req.body;
+    let { organizername, category, contactemail, description, email, password } = req.body;
+    
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can create organizers" });
     }
+    
     try {
-        // Check if organizer with this email already exists
-        const existingOrganizer = await User.findOne({ email: email, role: 'organizer' });
+        if (!email || email.trim() === '') {
+            email = organizername.toLowerCase().replace(/\s+/g, '') + '@eventmanagement.com';
+        }
+        
+        const existingOrganizer = await User.findOne({ email, role: 'organizer' });
         if (existingOrganizer) {
             return res.status(400).json({ message: "Organizer with this email already exists" });
         }
 
-        user = await User.register({
-            role: "organizer", organizername, category, contactemail, description, email, password
+        if (!password || password.trim() === '') {
+            password = generatePassword();
+        }
 
+        const generatedPassword = password;
+        
+        const user = await User.register({
+            role: "organizer", organizername, category, contactemail, description, email, password
         });
-        const token = createToken(user)
-        res.status(201).json({ message: "Organizer account created successfully", user, token: token });
+        
+        sendCredentialsEmail(contactemail, organizername, email, password);
+        
+        res.status(201).json({ 
+            message: "Organizer account created successfully", 
+            user, 
+            token: createToken(user),
+            credentials: { email, password: generatedPassword }
+        });
     } catch (err) {
         console.error('Registration error:', err);
         res.status(500).json({ message: "Server error", error: err.message });

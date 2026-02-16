@@ -131,7 +131,7 @@ const EditEvents = () => {
     
     if (confirmAttendance) {
         try{
-            const response = await api.post('/api/registration/markattendance', {ticketID: decodedText })
+            const response = await api.post('/api/registration/markattendance', {ticketID: decodedText, eventId: eventId })
             alert(response.data.message)
             // Refresh registrations to update attendance list
             fetchRegistrations();

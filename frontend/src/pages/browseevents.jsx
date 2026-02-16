@@ -13,6 +13,8 @@ const BrowseEvents = () => {
 	const [eligibilityFilter,setEligibilityFilter] = useState("all")
 	const [eventTypeFilter,setEventTypeFilter] = useState("all")
 	const [categoryFilter,setCategoryFilter] = useState("all")
+	const [followedClubsFilter,setFollowedClubsFilter] = useState("all")
+	const [followedClubs,setFollowedClubs] = useState([])
 	const [startDate,setStartDate] = useState("")
 	const [endDate,setEndDate] = useState("")
 	if (!user) {
@@ -25,7 +27,7 @@ const BrowseEvents = () => {
 
 			const eventList = response.data.events 
 			setAllEvents(eventList)
-			applyFilters(eventList, eligibilityFilter, eventTypeFilter, categoryFilter, startDate, endDate)
+			applyFilters(eventList, eligibilityFilter, eventTypeFilter, categoryFilter, followedClubsFilter, startDate, endDate)
 			
 			const tempobj = {}
 			const tempCategories = {}
@@ -53,7 +55,7 @@ const BrowseEvents = () => {
 
 	}
 
-	const applyFilters = (eventList, eligibility, eventType, category, start, end) => {
+	const applyFilters = (eventList, eligibility, eventType, category, followedClubsOnly, start, end) => {
 		let filtered = eventList
 
 		if(eligibility !== "all"){
@@ -66,6 +68,10 @@ const BrowseEvents = () => {
 
 		if(category !== "all"){
 			filtered = filtered.filter(event => event.eventCategory && event.eventCategory === category)
+		}
+
+		if(followedClubsOnly === "followed" && followedClubs.length > 0){
+			filtered = filtered.filter(event => followedClubs.includes(event.organizerId))
 		}
 
 		if(start) filtered = filtered.filter(e => new Date(e.eventStartDate) >= new Date(start))
@@ -87,19 +93,25 @@ const BrowseEvents = () => {
 	const handleEligibilityChange = (e) => {
 		const selectedEligibility = e.target.value
 		setEligibilityFilter(selectedEligibility)
-		applyFilters(allEvents, selectedEligibility, eventTypeFilter, categoryFilter, startDate, endDate)
+		applyFilters(allEvents, selectedEligibility, eventTypeFilter, categoryFilter, followedClubsFilter, startDate, endDate)
 	}
 
 	const handleEventTypeChange = (e) => {
 		const selectedType = e.target.value
 		setEventTypeFilter(selectedType)
-		applyFilters(allEvents, eligibilityFilter, selectedType, categoryFilter, startDate, endDate)
+		applyFilters(allEvents, eligibilityFilter, selectedType, categoryFilter, followedClubsFilter, startDate, endDate)
 	}
 
 	const handleCategoryChange = (e) => {
 		const selectedCategory = e.target.value
 		setCategoryFilter(selectedCategory)
-		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, selectedCategory, startDate, endDate)
+		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, selectedCategory, followedClubsFilter, startDate, endDate)
+	}
+
+	const handleFollowedClubsChange = (e) => {
+		const value = e.target.value
+		setFollowedClubsFilter(value)
+		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, categoryFilter, value, startDate, endDate)
 	}	
 	const handleDateChange = (e) => {
 		const {name, value} = e.target
@@ -113,9 +125,20 @@ const BrowseEvents = () => {
 			end = value
 			setEndDate(value)
 		}
-		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, categoryFilter, start, end)
+		applyFilters(allEvents, eligibilityFilter, eventTypeFilter, categoryFilter, followedClubsFilter, start, end)
 	}
 	useEffect(()=>{
+		const fetchFollowedClubs = async () => {
+			try{
+				const response = await api.get('/api/users/getProfile')
+				if(response.data.followedClubs){
+					setFollowedClubs(response.data.followedClubs.map(club => club._id))
+				}
+			}catch(error){
+				console.log("Error fetching followed clubs:", error)
+			}
+		}
+		fetchFollowedClubs()
 		getAllEvents()
 	},[])
 
@@ -147,13 +170,20 @@ const BrowseEvents = () => {
 				<option value="all">All</option>
 				<option value="normal">Normal</option>
 				<option value="merchandise">Merchandise</option>
-			</select>		<label> Category: </label>
-		<select value={categoryFilter} onChange={handleCategoryChange}>
-			<option value="all">All</option>
-			{Object.keys(selectedCategories).map((cat)=>(
-				<option key={cat} value={cat}>{cat}</option>
-			))}
-		</select>			<label>Start Date:</label>
+			</select>
+			<label> Followed Clubs: </label>
+			<select value={followedClubsFilter} onChange={handleFollowedClubsChange}>
+				<option value="all">All Clubs</option>
+				<option value="followed">Followed Only</option>
+			</select>
+			<label> Category: </label>
+			<select value={categoryFilter} onChange={handleCategoryChange}>
+				<option value="all">All</option>
+				{Object.keys(selectedCategories).map((cat)=>(
+					<option key={cat} value={cat}>{cat}</option>
+				))}
+			</select>
+			<label>Start Date:</label>
 			<input type="date" name="start" value={startDate} onChange={handleDateChange} />
 			<label>End Date:</label>
 			<input type="date" name="end" value={endDate} onChange={handleDateChange} />
@@ -186,13 +216,20 @@ const BrowseEvents = () => {
 				<option value="all">All</option>
 				<option value="normal">Normal</option>
 				<option value="merchandise">Merchandise</option>
-			</select>		<label> Category: </label>
+		</select>
+		<label> Followed Clubs: </label>
+		<select value={followedClubsFilter} onChange={handleFollowedClubsChange}>
+			<option value="all">All Clubs</option>
+			<option value="followed">Followed Only</option>
+		</select>
+		<label> Category: </label>
 		<select value={categoryFilter} onChange={handleCategoryChange}>
 			<option value="all">All</option>
 			{Object.keys(selectedCategories).map((cat)=>(
 				<option key={cat} value={cat}>{cat}</option>
 			))}
-		</select>			<label>Start Date:</label>
+		</select>
+			<label>Start Date:</label>
 			<input type="date" name="start" value={startDate} onChange={handleDateChange} />
 			<label>End Date:</label>
 			<input type="date" name="end" value={endDate} onChange={handleDateChange} />

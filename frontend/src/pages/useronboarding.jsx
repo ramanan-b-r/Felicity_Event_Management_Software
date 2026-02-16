@@ -11,22 +11,17 @@ const UserOnboarding = () => {
 
 
   const handleSubmit = async (e) => {
-
-        // Handle registration logic here
-    const email = formData.email;
-    const password = formData.password;
     try{
             const response = await api.put('/api/users/updateProfile', { interests: formData.interests });
            
-            window.location.href = '/participantdashboard';
+            alert("You will now go to clubs page where you can follow organizers");
+            window.location.href = '/clubs';
 
     }
     catch(error){
         console.error("There was an error!", error);
         alert("Something went wrong. Please try again.");
     }
-        
-
   }
   return (
     <div>

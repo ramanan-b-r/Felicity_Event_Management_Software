@@ -23,6 +23,18 @@ const user = JSON.parse(localStorage.getItem("userData") || "null");
     const handleSubmit = async (e) => {
         try{
             const response = await api.post('/api/users/createOrganizer',userForm);
+            
+            if(response.data.credentials) {
+                alert(
+                    `Organizer account created successfully!\n\n` +
+                    `Login Email: ${response.data.credentials.email}\n` +
+                    `Password: ${response.data.credentials.password}\n\n` +
+                    `SAVE THIS PASSWORD SAFELY - It will only be displayed once!\n` +
+                    `(Credentials have also been sent via email)`
+                );
+            }
+            
+            setUserForm({organizername:'',email:'',password:'',contactemail:'',description:'',category:''});
             getOrganizers();
         }catch(error){
             console.error("There was an error!", error);

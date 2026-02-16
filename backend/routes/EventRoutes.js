@@ -375,4 +375,48 @@ router.get('/exportParticipants/:eventId', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/getAggregateAnalytics', authMiddleware, async (req, res) => {
+    if(req.user.role !== 'organizer') {
+        return res.status(403).json({message: "Only organizers can view analytics"});
+    }
+    try {
+        const events = await Event.find({organizerId: req.user.id, eventStatus: 'completed'});
+        const Registration = require('../models/Registration');
+        
+        let totalRegistrations = 0;
+        let totalRevenue = 0;
+        let totalAttendance = 0;
+        let totalUnitsSold = 0;
+        
+        for(const event of events) {
+            const registrations = await Registration.find({eventId: event._id});
+            totalRegistrations += registrations.length;
+            
+            if(event.eventType === 'normal') {
+                totalRevenue += registrations.length * event.registrationFee;
+            } else if(event.eventType === 'merchandise') {
+                for(const reg of registrations) {
+                    if(reg.merchandiseSelection && reg.merchandiseSelection.length > 0) {
+                        totalUnitsSold += reg.merchandiseSelection.length;
+                        totalRevenue += reg.merchandiseSelection.length * event.merchandiseConfig.price;
+                    }
+                }
+            }
+            
+            const attendedCount = registrations.filter(r => r.hasattended).length;
+            totalAttendance += attendedCount;
+        }
+        
+        res.status(200).json({
+            totalRegistrations,
+            totalRevenue,
+            totalAttendance,
+            totalUnitsSold,
+            completedEvents: events.length
+        });
+    } catch(error) {
+        res.status(500).json({message: "Server error"});
+    }
+});
+
 module.exports = router;

@@ -12,6 +12,20 @@ const FormBuilder = ({ formFields, setFormFields, isLocked }) => {
         setFormFields(newFields);
     };
 
+    const moveFieldUp = (index) => {
+        if (index === 0) return;
+        const newFields = [...formFields];
+        [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
+        setFormFields(newFields);
+    };
+
+    const moveFieldDown = (index) => {
+        if (index === formFields.length - 1) return;
+        const newFields = [...formFields];
+        [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
+        setFormFields(newFields);
+    };
+
     const updateField = (index, key, value) => {
         const newFields = [...formFields];
         newFields[index][key] = value;
@@ -34,6 +48,8 @@ const FormBuilder = ({ formFields, setFormFields, isLocked }) => {
                     
                     {!isLocked && (
                         <div>
+                            <button onClick={() => moveFieldUp(index)} disabled={index === 0}>↑ Move Up</button>
+                            <button onClick={() => moveFieldDown(index)} disabled={index === formFields.length - 1}>↓ Move Down</button>
                             <button onClick={() => removeField(index)}>Delete</button>
                         </div>
                     )}

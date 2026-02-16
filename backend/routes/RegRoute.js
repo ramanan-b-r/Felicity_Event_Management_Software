@@ -541,16 +541,25 @@ router.post('/markattendance', authMiddleware, async (req, res) => {
         return res.status(403).json({message: "Only organizers can mark attendance"});
     }
     
-    const { ticketID } = req.body;
+    const { ticketID, eventId } = req.body;
+    if(!eventId) {
+        return res.status(400).json({message: "Event ID is required"});
+    }
+    
     const registration = await Registration.findOne({ ticketID : ticketID })
     if(!registration) {
         return res.status(404).json({message: "Registration not found"});
     }
     
-    const event = await Event.findById(registration.eventId);
-    if(event.organizerId.toString() !== req.user.id) {
+    if(registration.eventId.toString() !== eventId) {
+        return res.status(400).json({message: "This ticket is not for this event"});
+    }
+    
+    const event = await Event.findById(eventId);
+    if(!event || event.organizerId.toString() !== req.user.id) {
         return res.status(403).json({message: "Access denied"});
     }
+    
     if(registration.hasattended){
         return res.status(400).json({message: "Attendance already marked for this registration"});
     }
