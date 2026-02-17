@@ -33,6 +33,9 @@ const EditEvents = () => {
     });
     
     const [participants, setParticipants] = useState([]);
+    const [filteredParticipants, setFilteredParticipants] = useState([]);
+    const [participantSearch, setParticipantSearch] = useState("");
+    const [participantTypeFilter, setParticipantTypeFilter] = useState("all");
     const [analytics, setAnalytics] = useState(null);
 
     if (!user) {
@@ -67,10 +70,34 @@ const EditEvents = () => {
         try {
             const response = await api.get(`/api/registration/getEventRegistrations/${eventId}`);
             setParticipants(response.data.participants);
+            setFilteredParticipants(response.data.participants);
         } catch (error) {
             console.log('Error fetching registrations: ' + error.message);
         }
     }
+
+    const filterParticipants = () => {
+        let filtered = participants;
+        
+        if(participantTypeFilter !== "all") {
+            filtered = filtered.filter(p => {
+                // This checks the email domain since we don't have direct access to participantType
+                const isIIIT = p.email.endsWith('@students.iiit.ac.in') || p.email.endsWith('@research.iiit.ac.in');
+                if(participantTypeFilter === "iiit") return isIIIT;
+                if(participantTypeFilter === "non-iiit") return !isIIIT;
+                return true;
+            });
+        }
+        
+        // Filter by name search
+        if(participantSearch !== "") {
+            filtered = filtered.filter(p => 
+                p.name.toLowerCase().includes(participantSearch.toLowerCase())
+            );
+        }
+        
+        setFilteredParticipants(filtered);
+    };
 
     const fetchAnalytics = async () => {
         try {
@@ -164,6 +191,10 @@ const EditEvents = () => {
         }
     }, [eventId]);
     
+    useEffect(() => {
+        filterParticipants();
+    }, [participants, participantSearch, participantTypeFilter]);
+    
 
 
     const changeDetails = (e) => {
@@ -186,11 +217,30 @@ const EditEvents = () => {
             await api.put(`/api/events/updateEvent/${eventId}`, eventData);
             alert("Event updated successfully");
             
-            // Refresh event details from server to get updated itemsRemaining
-            await fetchEventDetails();
         } catch (error) {
             alert("Error updating event: " + error.response.data.message);
             console.error("Error updating event:", error);
+        }
+        await fetchEventDetails();
+    };
+
+    const handleDownloadFile = async (registrationId, fieldName) => {
+        try {
+            const response = await api.get(`/api/registration/downloadFile/${registrationId}/${encodeURIComponent(fieldName)}`, {
+                responseType: 'blob'
+            });
+            
+            const blob = new Blob([response.data]);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fieldName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            alert("Error downloading file: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -423,14 +473,27 @@ const EditEvents = () => {
             
             <h2>Participant Registrations</h2>
             {participants.length > 0 && (
-                <button onClick={downloadCSV} style={{marginBottom: '10px'}}>
-                    Download Participants CSV
-                </button>
+                <div>
+                    <input 
+                        placeholder="Search participants by name..." 
+                        value={participantSearch} 
+                        onChange={(e) => setParticipantSearch(e.target.value)}
+                    />
+                    <label> Participant Type: </label>
+                    <select value={participantTypeFilter} onChange={(e) => setParticipantTypeFilter(e.target.value)}>
+                        <option value="all">All</option>
+                        <option value="iiit">IIIT</option>
+                        <option value="non-iiit">Non-IIIT</option>
+                    </select>
+                    <button onClick={downloadCSV} style={{marginLeft: '10px'}}>Download Participants CSV</button>
+                </div>
             )}
             {participants.length === 0 ? (
                 <p>No registrations yet</p>
+            ) : filteredParticipants.length === 0 ? (
+                <p>No participants match your search criteria</p>
             ) : (
-                participants.map((participant, index) => (
+                filteredParticipants.map((participant, index) => (
                     <div key={index} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
                         <p><strong>Name:</strong> {participant.name}</p>
                         <p><strong>Email:</strong> {participant.email}</p>
@@ -474,9 +537,21 @@ const EditEvents = () => {
                         {Object.keys(participant.formData || {}).length > 0 && (
                             <div>
                                 <p><strong>Form Responses:</strong></p>
-                                {Object.entries(participant.formData).map(([question, answer]) => (
-                                    <p key={question}>{question}: {Array.isArray(answer) ? answer.join(', ') : answer}</p>
-                                ))}
+                                {Object.entries(participant.formData).map(([question, answer]) => {
+                                    const field = eventDetails.formFields?.find(f => f.label === question);
+                                    if (field && field.type === 'file') {
+                                        return (
+                                            <div key={question}>
+                                                <p>{question}: 
+                                                    <button onClick={() => handleDownloadFile(participant.registrationId, question)}>
+                                                        Download File
+                                                    </button>
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    return <p key={question}>{question}: {Array.isArray(answer) ? answer.join(', ') : answer}</p>;
+                                })}
                             </div>
                         )}
                         
@@ -498,7 +573,7 @@ const EditEvents = () => {
                         <p><strong>Not Yet Scanned:</strong> {participants.filter(p => !p.hasAttended).length}</p>
                     </div>
                     
-                    {participants.map((participant, index) => (
+                    {filteredParticipants.map((participant, index) => (
                         <div key={index} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0', backgroundColor: participant.hasAttended ? '#e6ffe6' : '#ffe6e6'}}>
                             <p><strong>Name:</strong> {participant.name}</p>
                             <p><strong>Email:</strong> {participant.email}</p>

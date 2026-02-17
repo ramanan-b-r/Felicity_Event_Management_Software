@@ -1,4 +1,4 @@
-import {BrowserRouter, Routes, Route} from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import PartDashboard from './pages/participantdashboard.jsx'
 import OrgDashboard from './pages/organizerdashboard.jsx'
 import Navbar from './components/navbar'
@@ -17,32 +17,32 @@ import EditEvent from './pages/editEvents.jsx'
 import EventsOrganized from './pages/eventsorganized.jsx'
 import ParticipantEventView from './pages/participanteventview.jsx'
 import ParticipantOrganizerView from './pages/participantorganizerview.jsx'
-import OrganizerPasswordReset from './pages/organizerpasswordreset.jsx'
+import PasswordReset from './pages/passwordreset.jsx'
 import AdminPasswordReset from './pages/adminpasswordreset.jsx'
 function App() {
-  return(
+  return (
     <BrowserRouter>
-      <Navbar/>
+      <Navbar />
       <Routes>
-        <Route path="/" element={<LandingPage/>}/>
-        <Route path="/login" element={<Login/>}/>
-        <Route path="/participantdashboard" element={<PartDashboard/>}/>
-        <Route path="/profile" element={<Profile/>}/>
-        <Route path="/logout" element={<Logout/>}/>
-        <Route path="/events" element={<Events/>}/>
-        <Route path="/clubs" element={<Clubs/>}/>
-        <Route path="/organizerdashboard" element={<OrgDashboard/>}/>
-        <Route path="/register" element={<Register/>}/>
-        <Route path="/useronboarding" element={<UserOnboarding/>}/>
-        <Route path="/admindashboard" element={<AdminDashboard/>}/>
-        <Route path="/manageorganizers" element={<ManageOrganizers/>}/>
-        <Route path="/createevent" element={<CreateEvent/>}/>
-        <Route path="/editevent/:eventId" element={<EditEvent/>}/>
-        <Route path="/eventsorganized" element={<EventsOrganized/>}/>
-        <Route path="/participanteventview/:eventId" element={<ParticipantEventView/>}/>
-        <Route path="/organizerview/:organizerId" element={<ParticipantOrganizerView/>}/>
-        <Route path="/organizerpasswordreset" element={<OrganizerPasswordReset/>}/>
-        <Route path="/passwordreset" element={<AdminPasswordReset/>}/>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/participantdashboard" element={<PartDashboard />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/logout" element={<Logout />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/clubs" element={<Clubs />} />
+        <Route path="/organizerdashboard" element={<OrgDashboard />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/useronboarding" element={<UserOnboarding />} />
+        <Route path="/admindashboard" element={<AdminDashboard />} />
+        <Route path="/manageorganizers" element={<ManageOrganizers />} />
+        <Route path="/createevent" element={<CreateEvent />} />
+        <Route path="/editevent/:eventId" element={<EditEvent />} />
+        <Route path="/eventsorganized" element={<EventsOrganized />} />
+        <Route path="/participanteventview/:eventId" element={<ParticipantEventView />} />
+        <Route path="/organizerview/:organizerId" element={<ParticipantOrganizerView />} />
+        <Route path="/passwordreset" element={<PasswordReset />} />
+        <Route path="/adminpasswordreset" element={<AdminPasswordReset />} />
       </Routes>
     </BrowserRouter>
   )

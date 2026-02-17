@@ -7,6 +7,7 @@ const BrowseEvents = () => {
 	
 	const [events,setEvents] = useState([])
 	const [allEvents,setAllEvents] = useState([])
+	const [trendingEvents,setTrendingEvents] = useState([])
 	const [filter,setFilter] = useState("")
 	const [selectedFilters,setSelectedFilters] = useState({})
 	const [selectedCategories,setSelectedCategories] = useState({})
@@ -53,6 +54,15 @@ const BrowseEvents = () => {
 			console.log(error)
 		}
 
+	}
+
+	const getTrendingEvents = async () => {
+		try{
+			const response = await api.get('/api/events/getTrendingEvents');
+			setTrendingEvents(response.data.events);
+		}catch(error){
+			console.log("Error fetching trending events:", error)
+		}
 	}
 
 	const getOrganizerIdValue = (event) => {
@@ -147,6 +157,7 @@ const BrowseEvents = () => {
 		}
 		fetchFollowedClubs()
 		getAllEvents()
+		getTrendingEvents()
 	},[])
 
 	const handleeventclick = (eventId) => {
@@ -241,6 +252,27 @@ const BrowseEvents = () => {
 			<label>End Date:</label>
 			<input type="date" name="end" value={endDate} onChange={handleDateChange} />
 		{events.map((event)=>(
+			<div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
+				<h3>{event.eventName}</h3>
+				<p><strong>Organizer:</strong> {event.organizerId?.organizername || 'Unknown'}</p>
+				<p><strong>Description:</strong> {event.eventDescription}</p>
+				<p><strong>Type:</strong> {event.eventType}</p>
+				<p><strong>Status:</strong> {event.eventStatus}</p>
+				<p><strong>Eligibility:</strong> {event.eligibility}</p>
+				<p><strong>Registration Deadline:</strong> {new Date(event.registrationDeadline).toLocaleDateString()}</p>
+				<p><strong>Event Start Date:</strong> {new Date(event.eventStartDate).toLocaleDateString()}</p>
+				<p><strong>Event End Date:</strong> {new Date(event.eventEndDate).toLocaleDateString()}</p>
+				<p><strong>Registration Limit:</strong> {event.registrationLimit}</p>
+				<p><strong>Registered Count:</strong> {event.registeredCount}</p>
+				<p><strong>Registration Fee:</strong> ₹{event.registrationFee}</p>
+				<p><strong>Tags:</strong> {event.eventTags?.join(', ') || 'None'}</p>
+				<p><strong>Event Category:</strong> {event.eventCategory}</p>
+				<button onClick={() => handleeventclick(event._id)}> View Event</button>
+			</div>
+		))}
+		
+		<h2>Trending Events</h2>
+		{trendingEvents.length === 0 ? <p>No trending events at the moment</p> : trendingEvents.map((event)=>(
 			<div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
 				<h3>{event.eventName}</h3>
 				<p><strong>Organizer:</strong> {event.organizerId?.organizername || 'Unknown'}</p>

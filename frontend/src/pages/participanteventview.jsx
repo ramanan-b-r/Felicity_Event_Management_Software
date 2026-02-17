@@ -10,6 +10,7 @@ const ParticipantEventView = () => {
   const { eventId } = useParams();
   const [event, setEvent] = useState({});
   const [formData, setFormData] = useState({});
+  const [fileUploads, setFileUploads] = useState({});
   const [selectedVariants, setSelectedVariants] = useState([]);
   const [purchaseError, setPurchaseError] = useState("");
   const [paymentProof, setPaymentProof] = useState(null);
@@ -28,6 +29,18 @@ const ParticipantEventView = () => {
 
   const handleInputChange = (fieldLabel, value) => {
     setFormData({...formData, [fieldLabel]: value});
+  };
+
+  const handleFileUpload = (fieldLabel, file) => {
+    if (file && file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    if (file && !file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert('Only images and PDF files are allowed');
+      return;
+    }
+    setFileUploads({...fileUploads, [fieldLabel]: file});
   };
 
   const handleImageUpload = (e) => {
@@ -52,8 +65,15 @@ const ParticipantEventView = () => {
         const response = await api.put('/api/registration/eventRegistration', formDataToSend);
         alert(`Registration submitted! ${response.data.message}`);
       } else {
-        const registrationData = {eventId, formData};
-        const response = await api.put('/api/registration/eventRegistration', registrationData);
+        const formDataToSend = new FormData();
+        formDataToSend.append('eventId', eventId);
+        formDataToSend.append('formData', JSON.stringify(formData));
+        
+        Object.keys(fileUploads).forEach(fieldLabel => {
+          formDataToSend.append(fieldLabel, fileUploads[fieldLabel]);
+        });
+        
+        const response = await api.put('/api/registration/eventRegistration', formDataToSend);
         alert(`Registration submitted! ${response.data.message}`);
       }
     } catch (error) {
@@ -89,6 +109,15 @@ const ParticipantEventView = () => {
     }
     if(field.type === 'number') {
       return <input type="number" onChange={(e) => handleInputChange(field.label, e.target.value)} />;
+    }
+    if(field.type === 'file') {
+      return (
+        <div>
+          <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(field.label, e.target.files[0])} />
+          <p>Max 5MB (Images or PDF only)</p>
+          {fileUploads[field.label] && <p>Selected: {fileUploads[field.label].name}</p>}
+        </div>
+      );
     }
     if(field.type === 'dropdown') {
       return (

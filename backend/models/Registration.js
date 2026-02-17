@@ -9,6 +9,8 @@ const RegistrationSchema = new Schema({
     eventId :{type:mongoose.Schema.Types.ObjectId, ref:'Event', required:true},
     participantId : {type:mongoose.Schema.Types.ObjectId, ref:'User', required:true},
     formData : {type: mongoose.Schema.Types.Mixed},
+    fileUploads: {type: Map, of: Buffer},
+    fileMimeTypes: {type: Map, of: String},
     //basicll using an universal identifier for ticket
     ticketID : {type: String, required: true, default: uuidv4},
     attendance:{

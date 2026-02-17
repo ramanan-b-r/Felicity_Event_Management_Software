@@ -141,6 +141,19 @@ const Profile = () => {
     }
   };
 
+  const changePassword = async () => {
+    const newPassword = prompt("Enter your new password:");
+    if (newPassword && newPassword.trim() !== '') {
+      try {
+        const response = await api.put('/api/users/changePassword', { newPassword });
+        alert(response.data.message);
+      } catch (error) {
+        console.error("Failed to change password:", error);
+        alert(error.response?.data?.message || "Failed to change password");
+      }
+    }
+  };
+
 
 
   if (loading) {
@@ -171,6 +184,9 @@ const Profile = () => {
 
         <p><strong>Interests:</strong> {user.interests?.join(', ')}</p>
         <button onClick={changeInterests}>Edit Interests</button>
+        
+        <p><strong>Password:</strong> ********</p>
+        <button onClick={changePassword}>Change Password</button>
         
         <p><strong>Followed Clubs:</strong></p>
         {user.followedClubs && user.followedClubs.length > 0 ? (

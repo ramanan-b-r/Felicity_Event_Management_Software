@@ -21,10 +21,10 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024 // 5MB limit
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
+        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
             cb(null, true);
         } else {
-            cb(new Error('Only image files are allowed'), false);
+            cb(new Error('Only images and PDF files are allowed'), false);
         }
     }
 });
@@ -124,7 +124,7 @@ const sendRejectionEmail = async (userEmail, eventName, reason = "Payment verifi
         console.error("Error sending rejection email:", err);
     }
 }
-router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), handleMulterError, async (req,res)=>{
+router.put('/eventRegistration', authMiddleware, upload.any(), handleMulterError, async (req,res)=>{
 
     if(req.user.role !== 'participant'){
         return res.status(403).json({message:"Only participants can register for events"});
@@ -143,7 +143,7 @@ router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), 
     try{
         const event = await Event.findById(req.body.eventId);
         if(!event){
-            return res.status(404).json({message:"Event not found"});
+            return res.status(404).json({message:"Event not found",error: err.message});
         }
         if(event.eventStatus === 'draft'){
             return res.status(400).json({message:"Event is not published yet"});
@@ -193,9 +193,9 @@ router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), 
         try{
             const event = await Event.findById(eventId);
             if(!event){
-                return res.status(404).json({message:"Event not found"});
+                return res.status(404).json({message:"Event not found",error: err.message});
             }
-            if(event.status==='draft'){
+            if(event.eventStatus==='draft'){
                 return res.status(400).json({message:"Event is not published yet"});
             }
             if(event.registeredCount >= event.registrationLimit){
@@ -203,7 +203,7 @@ router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), 
             }
             
             if(event.eventType === 'merchandise') {
-                if (!req.file) {
+                if (!req.files || req.files.length === 0 || !req.files.find(f => f.fieldname === 'paymentProof')) {
                     return res.status(400).json({message:"Payment proof is required for merchandise orders"});
                 }
                 
@@ -227,7 +227,7 @@ router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), 
             await event.save();  
         }
         catch(err){
-            return res.status(404).json({message:"Event not found"});
+            return res.status(404).json({message:"Event not found",error: err.message});
         }
 
         const registrationData = {
@@ -240,12 +240,28 @@ router.put('/eventRegistration', authMiddleware, upload.single('paymentProof'), 
         if(event.eventType === 'merchandise') {
             registrationData.merchandiseSelection = selectedVariants;
             registrationData.status = 'Pending';
-            if (req.file) {
-                registrationData.paymentProof = req.file.buffer;
+            const paymentFile = req.files?.find(f => f.fieldname === 'paymentProof');
+            if (paymentFile) {
+                registrationData.paymentProof = paymentFile.buffer;
             }
         } else {
             registrationData.formData = formData;
             registrationData.status = 'Approved';
+            
+            const fileUploads = {};
+            const fileMimeTypes = {};
+            if (req.files && req.files.length > 0) {
+                req.files.forEach(file => {
+                    if (file.fieldname !== 'paymentProof') {
+                        fileUploads[file.fieldname] = file.buffer;
+                        fileMimeTypes[file.fieldname] = file.mimetype;
+                    }
+                });
+            }
+            if (Object.keys(fileUploads).length > 0) {
+                registrationData.fileUploads = fileUploads;
+                registrationData.fileMimeTypes = fileMimeTypes;
+            }
         }
 
         const registration = new Registration(registrationData);
@@ -281,7 +297,10 @@ router.get('/getUpcomingEvents',authMiddleware,async (req,res)=>{
                 populate: { path: 'organizerId', select: 'organizername' }
             });
             //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
-            const upcomingEvents = registrations.filter(reg => new Date(reg.eventId.eventStartDate) > new Date()).map(reg => reg.eventId);
+            const upcomingEvents = registrations.filter(reg => new Date(reg.eventId.eventStartDate) > new Date()).map(reg => ({
+                ...reg.eventId.toObject(),
+                registrationStatus: reg.status
+            }));
             console.log(registrations);
             return res.status(200).json({events: upcomingEvents});
     }   
@@ -303,7 +322,10 @@ router.get('/getRegisteredEvents',authMiddleware,async (req,res)=>{
                 populate: { path: 'organizerId', select: 'organizername' }
             });
             //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
-            const registeredEvents = registrations.map(reg => reg.eventId);
+            const registeredEvents = registrations.map(reg => ({
+                ...reg.eventId.toObject(),
+                registrationStatus: reg.status
+            }));
             console.log(registrations);
             return res.status(200).json({events: registeredEvents});
     }   
@@ -361,11 +383,20 @@ router.get('/getEventRegistrations/:eventId', authMiddleware, async (req, res) =
         
         for(let reg of registrations) {
             const user = await User.findById(reg.participantId);
+            const formData = reg.formData || {};
+            
+            // Add file upload fields to formData for display
+            if (reg.fileUploads && reg.fileUploads.size > 0) {
+                for (let [fieldName, buffer] of reg.fileUploads.entries()) {
+                    formData[fieldName] = '[File Uploaded]';
+                }
+            }
+            
             participants.push({
                 registrationId: reg._id,
                 name: user.firstName + ' ' + user.lastName,
                 email: user.email,
-                formData: reg.formData || {},
+                formData: formData,
                 merchandiseSelection: reg.merchandiseSelection || [],
                 registeredAt: reg.createdAt,
                 status: reg.status || 'Approved',
@@ -576,4 +607,45 @@ router.post('/markattendance', authMiddleware, async (req, res) => {
     
     return res.status(200).json({message: "Attendance marked successfully"});
 })
+
+router.get('/downloadFile/:registrationId/:fieldName', authMiddleware, async (req, res) => {
+    if (req.user.role !== 'organizer') {
+        return res.status(403).json({ message: "Only organizers can download files" });
+    }
+    
+    try {
+        const { registrationId, fieldName } = req.params;
+        const registration = await Registration.findById(registrationId).populate('eventId');
+        
+        if (!registration) {
+            return res.status(404).json({ message: "Registration not found" });
+        }
+        
+        if (registration.eventId.organizerId.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+        
+        if (!registration.fileUploads || !registration.fileUploads.get(fieldName)) {
+            return res.status(404).json({ message: "File not found" });
+        }
+        
+        const fileBuffer = registration.fileUploads.get(fieldName);
+        const mimeType = registration.fileMimeTypes?.get(fieldName) || 'application/octet-stream';
+        
+        let extension = '.bin';
+        if (mimeType.startsWith('image/')) {
+            extension = '.' + mimeType.split('/')[1];
+        } else if (mimeType === 'application/pdf') {
+            extension = '.pdf';
+        }
+        
+        res.set('Content-Type', mimeType);
+        res.set('Content-Disposition', `attachment; filename="${fieldName}${extension}"`);
+        res.send(fileBuffer);
+    } catch (error) {
+        console.error("Error downloading file:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 module.exports = router;

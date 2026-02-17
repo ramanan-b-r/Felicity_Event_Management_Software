@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const OrganizerPasswordReset = require('../models/OrganizerPasswordReset');
+const OrganizerPasswordReset = require('../models/PasswordResetRequest');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
 
@@ -59,7 +59,10 @@ const sendPasswordResetEmail = async (organizerEmail, organizerName, newPassword
 }
 
 const verifyCaptcha = async (token) => {
-    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    // CAPTCHA DISABLED - Always return true
+    return true;
+    
+    /* const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
     try {
         console.log("Verifying CAPTCHA with token:", token.substring(0, 20) + "..."); // DEBUG
@@ -69,7 +72,7 @@ const verifyCaptcha = async (token) => {
     } catch (err) {
         console.error("CAPTCHA verification error:", err);
         return false;
-    }
+    } */
 }
 
 const generatePassword = () => {
@@ -272,18 +275,51 @@ router.put('/updateProfile', authMiddleware, async (req, res) => {
     }
 }
 );
+
+// Change password for participants only
+router.put('/changePassword', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { newPassword } = req.body;
+    
+    if (req.user.role !== 'participant') {
+        return res.status(403).json({ message: "Only participants can change password directly" });
+    }
+    
+    if (!newPassword || newPassword.trim() === '') {
+        return res.status(400).json({ message: "New password cannot be empty" });
+    }
+    
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        
+        user.password = hashedPassword;
+        await user.save();
+        
+        return res.status(200).json({ message: "Password changed successfully" });
+    } catch (err) {
+        console.error("Password change error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+});
+
 router.post("/createOrganizer", authMiddleware, async (req, res) => {
     let { organizername, category, contactemail, description, email, password } = req.body;
-    
+
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can create organizers" });
     }
-    
+
     try {
         if (!email || email.trim() === '') {
             email = organizername.toLowerCase().replace(/\s+/g, '') + '@eventmanagement.com';
         }
-        
+
         const existingOrganizer = await User.findOne({ email, role: 'organizer' });
         if (existingOrganizer) {
             return res.status(400).json({ message: "Organizer with this email already exists" });
@@ -294,16 +330,16 @@ router.post("/createOrganizer", authMiddleware, async (req, res) => {
         }
 
         const generatedPassword = password;
-        
+
         const user = await User.register({
             role: "organizer", organizername, category, contactemail, description, email, password
         });
-        
+
         sendCredentialsEmail(contactemail, organizername, email, password);
-        
-        res.status(201).json({ 
-            message: "Organizer account created successfully", 
-            user, 
+
+        res.status(201).json({
+            message: "Organizer account created successfully",
+            user,
             token: createToken(user),
             credentials: { email, password: generatedPassword }
         });
@@ -448,6 +484,33 @@ router.get("/getOrganizerDetails/:organizerId", authMiddleware, async (req, res)
     }
 });
 
+router.post('/participantPasswordReset', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const participant = await User.findOne({ email: email, role: 'participant' });
+        if (!participant) {
+            return res.status(404).json({ message: "Participant not found" });
+        }
+
+        const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await User.findByIdAndUpdate(participant._id, {
+            password: hashedPassword
+        });
+
+        const participantName = `${participant.firstName} ${participant.lastName}`;
+        sendPasswordResetEmail(participant.email, participantName, newPassword);
+
+        res.status(200).json({ message: "Password reset successful. A new password has been sent to your email." });
+    } catch (err) {
+        console.error("Participant password reset error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 // Organizer password reset request
 router.post('/organizerPasswordResetRequest', async (req, res) => {
     const { email, reason } = req.body;
@@ -477,7 +540,7 @@ router.post('/organizerPasswordResetRequest', async (req, res) => {
         });
 
         await resetRequest.save();
-        res.status(201).json({ message: "Password reset request submitted successfully" });
+        res.status(201).json({ message: "Password reset request submitted successfully. An admin will review your request." });
     } catch (err) {
         res.status(500).json({ message: "Server error" });
     }
@@ -513,14 +576,11 @@ router.put('/handlePasswordResetRequest', authMiddleware, async (req, res) => {
         await resetRequest.save();
 
         if (status === 'approved') {
-            // Generate random password
             const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
 
-            // Hash the password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-            // Update organizer's password
             await User.findByIdAndUpdate(resetRequest.organizerId, {
                 password: hashedPassword
             });

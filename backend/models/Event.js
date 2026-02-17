@@ -5,7 +5,7 @@ const FormFieldSchema = new Schema({
     label: { type: String, required: true }, 
     type: { 
         type: String, 
-        enum: ['text', 'number', 'email', 'dropdown', 'date', 'checkbox'], 
+        enum: ['text', 'number', 'email', 'dropdown', 'date', 'checkbox', 'file'], 
         required: true 
     },
     options: [{ type: String }], 

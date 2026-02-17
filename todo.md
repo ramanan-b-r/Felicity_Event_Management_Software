@@ -16,3 +16,16 @@ ig now that has to be implmented into search as well
 - handle attendance in csv export 
 - for some reason in my FTWE JT EXPIRW USER NOT LOGGED OUT ??
 - need to somwhow auto decide event status ongoign and completed based on dates apparwently which idk how to fix
+
+-  Missing: "File Upload" field type in form builder.
+
+
+this needs to be done in form bilder
+in the component just add file type
+change themodel and add file to that ig 
+with minimal code upload the file to backend as some binary file
+allow only small filed 5 mb simple check
+tell that in ui
+no css for ui
+when organizer views paritpacnts also
+they shd be able to see the images 

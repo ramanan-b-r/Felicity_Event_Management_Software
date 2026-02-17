@@ -73,6 +73,7 @@ const FormBuilder = ({ formFields, setFormFields, isLocked }) => {
                         <option value="number">Number</option>
                         <option value="dropdown">Dropdown</option>
                         <option value="checkbox">Checkbox</option>
+                        <option value="file">File Upload (Images/PDF, Max 5MB)</option>
                     </select>
 
                     <label style={{ marginLeft: '10px' }}>
