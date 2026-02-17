@@ -276,7 +276,10 @@ router.get('/getUpcomingEvents',authMiddleware,async (req,res)=>{
         return res.status(403).json({message:"Only participants can view upcoming events"});
     }
     try{
-            const registrations = await Registration.find({participantId: userid}).populate('eventId');
+            const registrations = await Registration.find({participantId: userid}).populate({
+                path: 'eventId',
+                populate: { path: 'organizerId', select: 'organizername' }
+            });
             //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
             const upcomingEvents = registrations.filter(reg => new Date(reg.eventId.eventStartDate) > new Date()).map(reg => reg.eventId);
             console.log(registrations);
@@ -295,7 +298,10 @@ router.get('/getRegisteredEvents',authMiddleware,async (req,res)=>{
         return res.status(403).json({message:"Only participants can view registered events"});
     }
     try{
-            const registrations = await Registration.find({participantId: userid}).populate('eventId');
+            const registrations = await Registration.find({participantId: userid}).populate({
+                path: 'eventId',
+                populate: { path: 'organizerId', select: 'organizername' }
+            });
             //filter first on eventstardat4e and nicely send the events to frotnend not registration object os frontend code is similar
             const registeredEvents = registrations.map(reg => reg.eventId);
             console.log(registrations);

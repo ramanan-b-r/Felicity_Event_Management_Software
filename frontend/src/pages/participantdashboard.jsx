@@ -77,6 +77,7 @@ const ParticipantDashboard = () => {
         {events.map((event)=>(
 			<div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
 				<h3>{event.eventName}</h3>
+            <p><strong>Organizer:</strong> {event.organizerId?.organizername || 'Unknown'}</p>
 				<p><strong>Description:</strong> {event.eventDescription}</p>
 				<p><strong>Type:</strong> {event.eventType}</p>
 				<p><strong>Status:</strong> {event.eventStatus}</p>
@@ -108,6 +109,7 @@ const ParticipantDashboard = () => {
       {filtered.length === 0 ? <p>No events found</p> : filtered.map((event)=>(
 			<div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
 				<h3>{event.eventName}</h3>
+          <p><strong>Organizer:</strong> {event.organizerId?.organizername || 'Unknown'}</p>
 				<p><strong>Description:</strong> {event.eventDescription}</p>
 				<p><strong>Type:</strong> {event.eventType}</p>
 				<p><strong>Status:</strong> {event.eventStatus}</p>

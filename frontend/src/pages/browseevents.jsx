@@ -55,6 +55,13 @@ const BrowseEvents = () => {
 
 	}
 
+	const getOrganizerIdValue = (event) => {
+		if (event?.organizerId && typeof event.organizerId === 'object') {
+			return event.organizerId._id
+		}
+		return event?.organizerId
+	}
+
 	const applyFilters = (eventList, eligibility, eventType, category, followedClubsOnly, start, end) => {
 		let filtered = eventList
 
@@ -71,7 +78,7 @@ const BrowseEvents = () => {
 		}
 
 		if(followedClubsOnly === "followed" && followedClubs.length > 0){
-			filtered = filtered.filter(event => followedClubs.includes(event.organizerId))
+			filtered = filtered.filter(event => followedClubs.includes(getOrganizerIdValue(event)))
 		}
 
 		if(start) filtered = filtered.filter(e => new Date(e.eventStartDate) >= new Date(start))
@@ -236,6 +243,7 @@ const BrowseEvents = () => {
 		{events.map((event)=>(
 			<div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
 				<h3>{event.eventName}</h3>
+				<p><strong>Organizer:</strong> {event.organizerId?.organizername || 'Unknown'}</p>
 				<p><strong>Description:</strong> {event.eventDescription}</p>
 				<p><strong>Type:</strong> {event.eventType}</p>
 				<p><strong>Status:</strong> {event.eventStatus}</p>

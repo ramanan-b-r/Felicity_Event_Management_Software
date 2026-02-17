@@ -39,7 +39,7 @@ router.get('/getEventbyId/:eventId',authMiddleware,async (req,res)=>{
 
     const eventId = req.params.eventId;
     try{
-        const event = await Event.findById(eventId);
+        const event = await Event.findById(eventId).populate('organizerId', 'organizername');
         if(!event){
             return res.status(404).json({message:"Event not found"});
         }
@@ -199,7 +199,7 @@ router.post('/getAllEvents',authMiddleware,async (req,res)=>{
                 }
             }
             if(req.body.filters ===""){
-                    const events = await Event.find(query);
+                    const events = await Event.find(query).populate('organizerId', 'organizername');
                     return res.status(200).json({events:events})
 
 
@@ -212,7 +212,7 @@ router.post('/getAllEvents',authMiddleware,async (req,res)=>{
                             { eventName: { $regex: q, $options: "i" } },
                             { eventTags: { $regex: q, $options: "i" } }
                         ]
-                });
+                }).populate('organizerId', 'organizername');
                 return res.status(200).json({events:events})
             }
     }
@@ -227,7 +227,7 @@ router.get('/getEvent/:eventId',authMiddleware,async (req,res)=>{
         return res.status(403).json({message:"Only participants can access events by category"});
     }
     try{
-        const events = await Event.findById(req.params.eventId);
+        const events = await Event.findById(req.params.eventId).populate('organizerId', 'organizername');
         if(!events){
             return res.status(404).json({message:"Event not found"});
         }
@@ -281,7 +281,7 @@ router.get('/getEventsByOrganizerForParticipant/:organizerId', authMiddleware, a
             query.$or = [{eligibility: {$regex: '^all$', $options: 'i'}}, {eligibility: {$regex: '^non-iiit$', $options: 'i'}}];
         }
         
-        const events = await Event.find(query);
+        const events = await Event.find(query).populate('organizerId', 'organizername');
         return res.status(200).json({events:events});
     }
     catch(error){
