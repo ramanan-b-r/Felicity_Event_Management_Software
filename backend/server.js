@@ -2,6 +2,7 @@ const express = require("express")
 //this reuiqred the dotenv package
 require("dotenv").config()
 const app = express()
+const cors = require('cors')
 const mongoose = require("mongoose")
 const userRoutes = require('./routes/UserRoutes.js');
 const eventRoutes = require('./routes/EventRoutes.js');
@@ -16,6 +17,9 @@ app.get("/", (req, res) => {
 })
 
 
+app.use(cors({
+    origin: '*'
+}))
 app.use(express.json())
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
@@ -24,4 +28,3 @@ app.use('/api/registration', regRoutes);
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`)
 })
- 

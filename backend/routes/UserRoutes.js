@@ -61,7 +61,7 @@ const sendPasswordResetEmail = async (organizerEmail, organizerName, newPassword
 const verifyCaptcha = async (token) => {
     // CAPTCHA DISABLED - Always return true
     return true;
-    
+
     /* const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
     try {
@@ -202,12 +202,12 @@ router.get('/getProfile', authMiddleware, async (req, res) => {
         return res.status(200).json(
             {
                 role: user.role,
-                //iirc the organizer also has email not juust contactemail           
                 email: user.email,
                 organizername: user.organizername,
                 category: user.category,
                 contactemail: user.contactemail,
                 description: user.description,
+                discordWebhookUrl: user.discordWebhookUrl || "",
             }
         )
     }
@@ -265,6 +265,9 @@ router.put('/updateProfile', authMiddleware, async (req, res) => {
             user.category = updates.category || user.category;
             user.contactemail = updates.contactemail || user.contactemail;
             user.description = updates.description || user.description;
+            if (updates.discordWebhookUrl !== undefined) {
+                user.discordWebhookUrl = updates.discordWebhookUrl;
+            }
             await user.save();
             return res.status(200).json({ message: "Profile updated successfully", user });
         }
@@ -280,27 +283,27 @@ router.put('/updateProfile', authMiddleware, async (req, res) => {
 router.put('/changePassword', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const { newPassword } = req.body;
-    
+
     if (req.user.role !== 'participant') {
         return res.status(403).json({ message: "Only participants can change password directly" });
     }
-    
+
     if (!newPassword || newPassword.trim() === '') {
         return res.status(400).json({ message: "New password cannot be empty" });
     }
-    
+
     try {
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
-        
+
         user.password = hashedPassword;
         await user.save();
-        
+
         return res.status(200).json({ message: "Password changed successfully" });
     } catch (err) {
         console.error("Password change error:", err);

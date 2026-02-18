@@ -31,7 +31,7 @@ const Register = () => {
     } */
 
     try {
-      const response = await axios.post('/api/users/register', { email: formData.email, password: formData.password, firstName: formData.firstName, lastName: formData.lastName, contactnumber: formData.contactnumber, collegename: formData.collegename, captchaToken });
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/users/register`, { email: formData.email, password: formData.password, firstName: formData.firstName, lastName: formData.lastName, contactnumber: formData.contactnumber, collegename: formData.collegename, captchaToken });
       console.log("Registration successful:", response.data.user.email);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userData', JSON.stringify(response.data.user));

@@ -5,6 +5,7 @@ const Registration = require('../models/Registration');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
+const sendDiscordNotification = require('../utils/discordWebhook');
 router.put('/createEvent', authMiddleware, async (req, res) => {
     if (req.user.role !== 'organizer') {
         return res.status(403).json({ message: "Only organizers can create events" });
@@ -160,6 +161,15 @@ router.put('/updateEvent/:eventId', authMiddleware, async (req, res) => {
         }
 
         const updatedEvent = await Event.findByIdAndUpdate(eventId, allowedUpdates, { new: true });
+
+        // Send Discord notification when event is published for the first time
+        if (currentStatus === 'draft' && newStatus === 'published') {
+            const organizer = await User.findById(req.user.id);
+            if (organizer && organizer.discordWebhookUrl) {
+                sendDiscordNotification(organizer.discordWebhookUrl, updatedEvent);
+            }
+        }
+
         return res.status(200).json({ message: "Event updated successfully", event: updatedEvent });
     }
     catch (err) {

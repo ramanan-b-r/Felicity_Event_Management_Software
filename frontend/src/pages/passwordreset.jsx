@@ -13,7 +13,7 @@ const PasswordReset = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!userType) {
             alert("Please select your user type");
             return;
@@ -34,17 +34,17 @@ const PasswordReset = () => {
             let response;
             if (userType === 'organizer') {
                 // Organizer: submit request for admin approval
-                response = await axios.post('/api/users/organizerPasswordResetRequest', {
+                response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/users/organizerPasswordResetRequest`, {
                     email: formData.email,
                     reason: formData.reason
                 });
             } else {
                 // Participant: send email directly with new password
-                response = await axios.post('/api/users/participantPasswordReset', {
+                response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/users/participantPasswordReset`, {
                     email: formData.email
                 });
             }
-            
+
             alert(response.data.message);
             setFormData({ email: '', reason: '' });
             setUserType('');

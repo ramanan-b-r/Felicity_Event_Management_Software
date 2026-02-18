@@ -7,7 +7,7 @@ const Profile = () => {
   if (!currentUser) {
     return <Navigate to="/login" />
   }
-  
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const fetchProfile = async () => {
@@ -21,7 +21,7 @@ const Profile = () => {
     }
   };
   useEffect(() => {
-   
+
     fetchProfile();
   }, []);
 
@@ -29,65 +29,65 @@ const Profile = () => {
     const newName = prompt("Enter your new first name:", user.firstName);
     if (newName && newName !== user.firstName) {
       try {
-        
+
         const response = await api.put('/api/users/updateProfile', { firstName: newName });
         setUser(prevUser => ({ ...prevUser, firstName: response.data.user.firstName }));
       } catch (error) {
         console.error("Failed to update first name:", error);
       }
     }
-  };  
+  };
   const changeLastName = async () => {
     const newName = prompt("Enter your new last name:", user.lastName);
     if (newName && newName !== user.lastName) {
       try {
-        
+
         const response = await api.put('/api/users/updateProfile', { lastName: newName });
         setUser(prevUser => ({ ...prevUser, lastName: response.data.user.lastName }));
       } catch (error) {
         console.error("Failed to update last name:", error);
       }
     }
-  }; 
+  };
   const changeCollege = async () => {
     const newCollege = prompt("Enter your new college name:", user.collegename);
     if (newCollege && newCollege !== user.collegename) {
       try {
-        
+
         const response = await api.put('/api/users/updateProfile', { collegename: newCollege });
-        setUser(prevUser => ({ ...prevUser, collegename: response.data.user.collegename }) );
+        setUser(prevUser => ({ ...prevUser, collegename: response.data.user.collegename }));
       } catch (error) {
         console.error("Failed to update college name:", error);
       }
     }
-  };  
+  };
 
   //maybe need to validarte later
   const changeContactNumber = async () => {
     const newContact = prompt("Enter your new contact number:", user.contactnumber);
     if (newContact && newContact !== user.contactnumber) {
       try {
-        
+
         const response = await api.put('/api/users/updateProfile', { contactnumber: newContact });
-        setUser(prevUser => ({ ...prevUser, contactnumber: response.data.user.contactnumber }) );
+        setUser(prevUser => ({ ...prevUser, contactnumber: response.data.user.contactnumber }));
       } catch (error) {
         console.error("Failed to update contact number:", error);
       }
     }
-  };  
+  };
 
-  
-  const changeInterests= async()=>{
-    const interests = prompt("Add new interests seperated by commas",user.interests?.join(','))
-    if(interests!== user.interests?.join(',')){
 
-      try{
+  const changeInterests = async () => {
+    const interests = prompt("Add new interests seperated by commas", user.interests?.join(','))
+    if (interests !== user.interests?.join(',')) {
+
+      try {
         const interestarray = interests.split(',')
-        const response = await api.put('/api/users/updateProfile',{interests:interestarray})
-        setUser(prevUser => ({ ...prevUser, interests: response.data.user.interests}) );
+        const response = await api.put('/api/users/updateProfile', { interests: interestarray })
+        setUser(prevUser => ({ ...prevUser, interests: response.data.user.interests }));
 
-      } 
-      catch(err){
+      }
+      catch (err) {
         alert("Type in the fields properly")
       }
     }
@@ -141,6 +141,18 @@ const Profile = () => {
     }
   };
 
+  const changeDiscordWebhookUrl = async () => {
+    const newUrl = prompt("Enter your Discord Webhook URL:", user.discordWebhookUrl || "");
+    if (newUrl !== null && newUrl !== user.discordWebhookUrl) {
+      try {
+        const response = await api.put('/api/users/updateProfile', { discordWebhookUrl: newUrl });
+        setUser(prevUser => ({ ...prevUser, discordWebhookUrl: response.data.user.discordWebhookUrl }));
+      } catch (error) {
+        console.error("Failed to update Discord webhook URL:", error);
+      }
+    }
+  };
+
   const changePassword = async () => {
     const newPassword = prompt("Enter your new password:");
     if (newPassword && newPassword.trim() !== '') {
@@ -184,10 +196,10 @@ const Profile = () => {
 
         <p><strong>Interests:</strong> {user.interests?.join(', ')}</p>
         <button onClick={changeInterests}>Edit Interests</button>
-        
+
         <p><strong>Password:</strong> ********</p>
         <button onClick={changePassword}>Change Password</button>
-        
+
         <p><strong>Followed Clubs:</strong></p>
         {user.followedClubs && user.followedClubs.length > 0 ? (
           <ul>
@@ -201,7 +213,7 @@ const Profile = () => {
         <p><em>To manage clubs, visit the Organizers page</em></p>
       </div>
     );
-  } 
+  }
   else if (user.role === 'organizer') {
     rolerelatedcontent = (
       <div>
@@ -215,6 +227,8 @@ const Profile = () => {
         <button onClick={changeDescription}>Edit Description</button>
         <p><strong>Contact Email:</strong> {user.contactemail}</p>
         <button onClick={changeContactEmail}>Edit Contact Email</button>
+        <p><strong>Discord Webhook URL:</strong> {user.discordWebhookUrl || "(not set)"}</p>
+        <button onClick={changeDiscordWebhookUrl}>Edit Discord Webhook URL</button>
       </div>
     );
   }
@@ -232,7 +246,7 @@ const Profile = () => {
       <h2>Profile</h2>
 
       {rolerelatedcontent}
-      
+
     </div>
   );
 };
