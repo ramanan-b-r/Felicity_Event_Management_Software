@@ -1,54 +1,54 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-
+//test for commit
 const FormFieldSchema = new Schema({
-    label: { type: String, required: true }, 
-    type: { 
-        type: String, 
-        enum: ['text', 'number', 'email', 'dropdown', 'date', 'checkbox', 'file'], 
-        required: true 
+    label: { type: String, required: true },
+    type: {
+        type: String,
+        enum: ['text', 'number', 'email', 'dropdown', 'date', 'checkbox', 'file'],
+        required: true
     },
-    options: [{ type: String }], 
+    options: [{ type: String }],
     required: { type: Boolean, default: false }
 
 });
 
 const MerchandiseSchema = new Schema({
-    itemName: { type: String }, 
-    price: { type: Number },    
+    itemName: { type: String },
+    price: { type: Number },
     variants: { type: String }, // comma-separated string
-    stock: { type: Number, default: 0 }, 
+    stock: { type: Number, default: 0 },
     itemsRemaining: { type: Number, default: 0 },
-    purchaseLimit: { type: Number, default: 1 } 
+    purchaseLimit: { type: Number, default: 1 }
 });
 
 const EventSchema = new Schema({
     eventName: { type: String, required: true },
     eventDescription: { type: String, required: true },
-    eventType: { 
-        type: String, 
-        enum: ['normal', 'merchandise'], 
-        required: true 
+    eventType: {
+        type: String,
+        enum: ['normal', 'merchandise'],
+        required: true
     },
-    eligibility: { type: String, required: true }, 
+    eligibility: { type: String, required: true },
     registrationDeadline: { type: Date, required: true },
     eventStartDate: { type: Date, required: true },
     eventEndDate: { type: Date, required: true },
-    registrationLimit: { type: Number, required: true }, 
+    registrationLimit: { type: Number, required: true },
     registrationFee: { type: Number, required: true },
     organizerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     eventTags: [{ type: String }],
-    eventStatus :{
+    eventStatus: {
         type: String,
         enum: ['draft', 'ongoing', 'published', 'closed', 'completed'],
         default: 'draft'
     },
     registeredCount: { type: Number, default: 0 },
     eventCategory: { type: String, required: true },
-    
-    formFields: [FormFieldSchema], 
 
-    merchandiseConfig: MerchandiseSchema 
+    formFields: [FormFieldSchema],
+
+    merchandiseConfig: MerchandiseSchema
 
 }, {
     timestamps: true
