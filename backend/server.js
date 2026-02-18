@@ -18,7 +18,7 @@ app.get("/", (req, res) => {
 
 
 app.use(cors({
-    origin: '*'
+    origin: 'https://felicity-event-management-software-no9oa37e9.vercel.app'
 }))
 app.use(express.json())
 app.use('/api/users', userRoutes);
