@@ -10,7 +10,10 @@ const app = express()
 
 // CORS must be first — before any routes
 app.use(cors({
-    origin: 'https://felicity-event-management-software-no9oa37e9.vercel.app',
+    origin: [
+        'https://felicity-event-management-software.vercel.app',
+        'https://felicity-event-management-software-no9oa37e9.vercel.app'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
