@@ -6,6 +6,20 @@ const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
 const sendDiscordNotification = require('../utils/discordWebhook');
+
+// Auto-update event status based on current date (called on every fetch)
+async function autoUpdateEventStatus(event) {
+    if (!['published', 'ongoing'].includes(event.eventStatus)) return event;
+    const now = new Date();
+    let newStatus = null;
+    if (now > event.eventEndDate) newStatus = 'completed';
+    else if (now > event.eventStartDate) newStatus = 'ongoing';
+    if (newStatus && newStatus !== event.eventStatus) {
+        return await Event.findByIdAndUpdate(event._id, { eventStatus: newStatus }, { new: true });
+    }
+    return event;
+}
+
 router.put('/createEvent', authMiddleware, async (req, res) => {
     if (req.user.role !== 'organizer') {
         return res.status(403).json({ message: "Only organizers can create events" });
@@ -40,7 +54,7 @@ router.get('/getEventbyId/:eventId', authMiddleware, async (req, res) => {
 
     const eventId = req.params.eventId;
     try {
-        const event = await Event.findById(eventId).populate('organizerId', 'organizername');
+        let event = await Event.findById(eventId).populate('organizerId', 'organizername');
         if (!event) {
             return res.status(404).json({ message: "Event not found" });
         }
@@ -61,6 +75,7 @@ router.get('/getEventbyId/:eventId', authMiddleware, async (req, res) => {
             }
         }
 
+        event = await autoUpdateEventStatus(event);
         return res.status(200).json({ event });
     }
     catch (err) {
@@ -186,7 +201,8 @@ router.get('/getEventsByOrganizer', authMiddleware, async (req, res) => {
 
     }
     try {
-        const events = await Event.find({ organizerId: userID })
+        let events = await Event.find({ organizerId: userID });
+        events = await Promise.all(events.map(e => autoUpdateEventStatus(e)));
         return res.status(200).json({ events: events })
 
     }
@@ -213,7 +229,8 @@ router.post('/getAllEvents', authMiddleware, async (req, res) => {
             }
         }
         if (req.body.filters === "") {
-            const events = await Event.find(query).populate('organizerId', 'organizername');
+            let events = await Event.find(query).populate('organizerId', 'organizername');
+            events = await Promise.all(events.map(e => autoUpdateEventStatus(e)));
             return res.status(200).json({ events: events })
 
 
@@ -231,7 +248,7 @@ router.post('/getAllEvents', authMiddleware, async (req, res) => {
             });
             const organizerIds = matchingOrganizers.map(org => org._id);
 
-            const events = await Event.find({
+            let events = await Event.find({
                 ...query,
                 $or: [
                     { eventName: { $regex: q, $options: "i" } },
@@ -239,6 +256,7 @@ router.post('/getAllEvents', authMiddleware, async (req, res) => {
                     { organizerId: { $in: organizerIds } }
                 ]
             }).populate('organizerId', 'organizername');
+            events = await Promise.all(events.map(e => autoUpdateEventStatus(e)));
             return res.status(200).json({ events: events })
         }
     }
@@ -253,10 +271,11 @@ router.get('/getEvent/:eventId', authMiddleware, async (req, res) => {
         return res.status(403).json({ message: "Only participants can access events by category" });
     }
     try {
-        const events = await Event.findById(req.params.eventId).populate('organizerId', 'organizername');
+        let events = await Event.findById(req.params.eventId).populate('organizerId', 'organizername');
         if (!events) {
             return res.status(404).json({ message: "Event not found" });
         }
+        events = await autoUpdateEventStatus(events);
         if (events.eventStatus !== 'published') {
             return res.status(403).json({ message: "Event is not published yet" });
         }
@@ -307,7 +326,8 @@ router.get('/getEventsByOrganizerForParticipant/:organizerId', authMiddleware, a
             query.$or = [{ eligibility: { $regex: '^all$', $options: 'i' } }, { eligibility: { $regex: '^non-iiit$', $options: 'i' } }];
         }
 
-        const events = await Event.find(query).populate('organizerId', 'organizername');
+        let events = await Event.find(query).populate('organizerId', 'organizername');
+        events = await Promise.all(events.map(e => autoUpdateEventStatus(e)));
         return res.status(200).json({ events: events });
     }
     catch (error) {
@@ -483,7 +503,8 @@ router.get('/getTrendingEvents', authMiddleware, async (req, res) => {
             }
         }
 
-        const events = await Event.find(query).populate('organizerId', 'organizername');
+        let events = await Event.find(query).populate('organizerId', 'organizername');
+        events = await Promise.all(events.map(e => autoUpdateEventStatus(e)));
 
         const sortedEvents = sortedEventIds
             .map(id => events.find(e => e._id.toString() === id))
