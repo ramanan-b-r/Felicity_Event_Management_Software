@@ -363,26 +363,7 @@ additional functionalities.
 
 
                                                 8
-16 Instructions
-
-  IMPORTANT: Academic Integrity Policy
-
-  AI Usage Policy:
-  • The use of AI tools (ChatGPT, GitHub Copilot, or any other AI-assisted coding tools)
-    is strictly NOT ALLOWED for this assignment.
-  • Any instance of AI usage will result in a score of 0 (zero) for the assignment.
-  Plagiarism Policy:
-  • All submissions will be run through plagiarism detection software.
-  • Any instance of copying code from other students, online sources, or previous submis-
-    sions will result in a score of 0 (zero) for the assignment.
-  • You must write your own original code. Collaboration is not permitted.
-  Evaluation Process:
-  • There will be evaluations (evals) conducted for this assignment.
-  • During the evaluation, you will be asked to explain the code you have written.
-  • If you cannot explain what you wrote, it will be considered as plagiarism.
-  • Inability to explain your code will result in a score of 0 (zero) for the assignment.
-
-
+
 
 
                                              9

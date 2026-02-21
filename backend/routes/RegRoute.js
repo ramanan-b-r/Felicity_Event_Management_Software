@@ -78,7 +78,7 @@ const sendConfirmationEmail = async (userEmail, ticket_id, eventName = "Event") 
                 console.error("Error sending email:", err);
             }
             else {
-                console.log("Email sent successfully:", info.response);
+
             }
         });
 
@@ -115,7 +115,7 @@ const sendRejectionEmail = async (userEmail, eventName, reason = "Payment verifi
                 console.error("Error sending rejection email:", err);
             }
             else {
-                console.log("Rejection email sent successfully:", info.response);
+
             }
         });
 
@@ -300,7 +300,7 @@ router.get('/getUpcomingEvents', authMiddleware, async (req, res) => {
             ...reg.eventId.toObject(),
             registrationStatus: reg.status
         }));
-        console.log(registrations);
+
         return res.status(200).json({ events: upcomingEvents });
     }
     catch (error) {
@@ -325,7 +325,7 @@ router.get('/getRegisteredEvents', authMiddleware, async (req, res) => {
             ...reg.eventId.toObject(),
             registrationStatus: reg.status
         }));
-        console.log(registrations);
+
         return res.status(200).json({ events: registeredEvents });
     }
     catch (error) {

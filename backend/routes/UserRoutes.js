@@ -7,6 +7,7 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const OrganizerPasswordReset = require('../models/PasswordResetRequest');
+const Registration = require('../models/Registration');
 const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
 
@@ -48,7 +49,7 @@ const sendPasswordResetEmail = async (organizerEmail, organizerName, newPassword
                 console.error("Error sending password reset email:", err);
             }
             else {
-                console.log("Password reset email sent successfully:", info.response);
+
             }
         });
 
@@ -65,9 +66,9 @@ const verifyCaptcha = async (token) => {
     /* const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
     try {
-        console.log("Verifying CAPTCHA with token:", token.substring(0, 20) + "..."); // DEBUG
+
         const response = await axios.post(url);
-        console.log("Google reCAPTCHA response:", response.data); // DEBUG
+
         return response.data.success;
     } catch (err) {
         console.error("CAPTCHA verification error:", err);
@@ -115,7 +116,7 @@ const sendCredentialsEmail = async (organizerEmail, organizerName, loginEmail, p
             if (err) {
                 console.error("Error sending credentials email:", err);
             } else {
-                console.log("Credentials email sent:", info.response);
+
             }
         });
     } catch (err) {
@@ -384,20 +385,24 @@ router.put("/updateOrganizerStatus", authMiddleware, async (req, res) => {
 });
 
 router.put("/deleteOrganizer", authMiddleware, async (req, res) => {
-
-
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can delete organizers" });
     }
-    else {
-        const id = req.body.id;
-        try {
-            await User.findByIdAndDelete(id);
-            res.status(200).json({ message: "Organizer deleted successfully" });
-        }
-        catch (err) {
-            res.status(500).json({ message: "Server error" });
-        }
+    const id = req.body.id;
+    try {
+        // Find all events by this organizer
+        const events = await Event.find({ organizerId: id });
+        const eventIds = events.map(e => e._id);
+        // Delete all registrations for those events
+        await Registration.deleteMany({ eventId: { $in: eventIds } });
+        // Delete all events
+        await Event.deleteMany({ organizerId: id });
+        // Delete the organizer
+        await User.findByIdAndDelete(id);
+        res.status(200).json({ message: "Organizer and all associated data deleted successfully" });
+    }
+    catch (err) {
+        res.status(500).json({ message: "Server error" });
     }
 });
 // Get all active organizers for participants to view

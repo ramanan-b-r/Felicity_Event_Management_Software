@@ -7,7 +7,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 const Event = require('../models/Event');
 const sendDiscordNotification = require('../utils/discordWebhook');
 
-// Auto-update event status based on current date (called on every fetch)
 async function autoUpdateEventStatus(event) {
     if (!['published', 'ongoing'].includes(event.eventStatus)) return event;
     const now = new Date();
@@ -150,11 +149,11 @@ router.put('/updateEvent/:eventId', authMiddleware, async (req, res) => {
             const currentRemaining = event.merchandiseConfig?.itemsRemaining || 0;
             const newStock = parseInt(allowedUpdates.merchandiseConfig.stock);
 
-            console.log(`Stock update: current=${currentStock}, remaining=${currentRemaining}, new=${newStock}`);
+
 
             // Calculate items sold (stock - remaining)
             const itemsSold = currentStock - currentRemaining;
-            console.log(`Items sold: ${itemsSold}`);
+
 
             // Validate new stock is not less than items already sold
             if (newStock < itemsSold) {
@@ -165,7 +164,7 @@ router.put('/updateEvent/:eventId', authMiddleware, async (req, res) => {
 
             // Calculate new itemsRemaining
             const newItemsRemaining = newStock - itemsSold;
-            console.log(`New items remaining: ${newItemsRemaining}`);
+
 
             // Merge the NEW merchandiseConfig from the request with the calculated stock values
             allowedUpdates.merchandiseConfig = {

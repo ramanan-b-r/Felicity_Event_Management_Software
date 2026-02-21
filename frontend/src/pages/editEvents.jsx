@@ -4,6 +4,7 @@ import api from '../api/axiosmiddleware';
 import FormBuilder from '../components/dynamicformbuild';
 import MerchConfig from '../components/merchconfig'
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import EventChat from '../components/eventchat';
 
 const EditEvents = () => {
     const { eventId } = useParams();
@@ -586,6 +587,7 @@ const EditEvents = () => {
                     ))}
                 </div>
             )}
+            <EventChat eventId={eventId} isOrganizer={true} />
         </div>
     )
 }
