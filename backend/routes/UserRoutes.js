@@ -59,6 +59,40 @@ const sendPasswordResetEmail = async (organizerEmail, organizerName, newPassword
     }
 }
 
+const sendRejectionEmail = async (organizerEmail, organizerName, comment) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.GMAIL_ID,
+                pass: process.env.GMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: `"Event Management Team" <${process.env.GMAIL_ID}>`,
+            to: organizerEmail,
+            subject: 'Password Reset Request - Rejected',
+            html: `
+                <h2>Password Reset Request Rejected</h2>
+                <p>Dear ${organizerName},</p>
+                <p>Your password reset request has been reviewed and <strong>rejected</strong> by our admin team.</p>
+                ${comment ? `<p><strong>Reason:</strong> ${comment}</p>` : ''}
+                <p>If you believe this is a mistake, please contact the admin.</p>
+                <br/>
+                <p>Best regards,</p>
+                <p>Event Management Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (err) => {
+            if (err) console.error("Error sending rejection email:", err);
+        });
+    } catch (err) {
+        console.error("Error sending rejection email:", err);
+    }
+}
+
 const verifyCaptcha = async (token) => {
     // CAPTCHA DISABLED - Always return true
     return true;
@@ -600,6 +634,8 @@ router.put('/handlePasswordResetRequest', authMiddleware, async (req, res) => {
                 message: "Password reset approved and new password sent via email"
             });
         } else {
+            // Send rejection email with admin's comment
+            sendRejectionEmail(resetRequest.organizerEmail, resetRequest.organizerName, comment);
             res.status(200).json({ message: `Password reset request ${status}` });
         }
     } catch (err) {
