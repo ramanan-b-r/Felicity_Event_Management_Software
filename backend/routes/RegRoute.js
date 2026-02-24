@@ -202,6 +202,25 @@ router.put('/eventRegistration', authMiddleware, upload.any(), handleMulterError
                 return res.status(400).json({ message: "Registration limit reached" });
             }
 
+            // Validate required dynamic form fields for normal events
+            if (event.eventType === 'normal' && event.formFields && event.formFields.length > 0) {
+                for (const field of event.formFields) {
+                    if (field.required) {
+                        if (field.type === 'file') {
+                            const isFileUploaded = req.files && req.files.find(f => f.fieldname === field.label);
+                            if (!isFileUploaded) {
+                                return res.status(400).json({ message: `Missing required file upload: ${field.label}` });
+                            }
+                        } else {
+                            const val = formData ? formData[field.label] : undefined;
+                            if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+                                return res.status(400).json({ message: `Missing required field: ${field.label}` });
+                            }
+                        }
+                    }
+                }
+            }
+
             if (event.eventType === 'merchandise') {
                 if (!req.files || req.files.length === 0 || !req.files.find(f => f.fieldname === 'paymentProof')) {
                     return res.status(400).json({ message: "Payment proof is required for merchandise orders" });

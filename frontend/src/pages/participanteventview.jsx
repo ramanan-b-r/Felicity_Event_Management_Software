@@ -66,6 +66,26 @@ const ParticipantEventView = () => {
         const response = await api.put('/api/registration/eventRegistration', formDataToSend);
         alert(`Registration submitted! ${response.data.message}`);
       } else {
+        // Validation check for required fields
+        if (event.formFields && event.formFields.length > 0) {
+          for (let field of event.formFields) {
+            if (field.required) {
+              if (field.type === 'file') {
+                if (!fileUploads[field.label]) {
+                  alert(`Please upload a file for the required field: ${field.label}`);
+                  return;
+                }
+              } else {
+                const val = formData[field.label];
+                if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+                  alert(`Please fill out the required field: ${field.label}`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+
         const formDataToSend = new FormData();
         formDataToSend.append('eventId', eventId);
         formDataToSend.append('formData', JSON.stringify(formData));

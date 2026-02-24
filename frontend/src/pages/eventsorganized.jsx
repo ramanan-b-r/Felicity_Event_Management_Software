@@ -1,34 +1,34 @@
 
-import { useState ,useEffect} from "react"
+import { useState, useEffect } from "react"
 import { Navigate, Link } from "react-router-dom";
 import api from '../api/axiosmiddleware';
-const EventsOrganized = () =>{
+const EventsOrganized = () => {
     const user = JSON.parse(localStorage.getItem("userData"));
-    if(!user){
-        return <Navigate to="/"/>
-    
+    if (!user) {
+        return <Navigate to="/" />
+
     }
-    if(user.role !== "organizer"){
-         return <Navigate to="/"/>
-    }  
-   
-    const [events,setEvents] = useState([]);
+    if (user.role !== "organizer") {
+        return <Navigate to="/" />
+    }
+
+    const [events, setEvents] = useState([]);
     const fetchEventsOrganized = async () => {
-        try{
+        try {
             const response = await api.get('/api/events/getEventsByOrganizer');
             const allEvents = response.data.events || [];
             setEvents(allEvents);
         }
-        catch(error){
+        catch (error) {
             console.error("Error fetching events organized:", error);
         }
 
     }
-    useEffect(()=>{
+    useEffect(() => {
         fetchEventsOrganized();
-    },[]);
-    
-    if(events.length === 0){
+    }, []);
+
+    if (events.length === 0) {
         return (
             <div>
                 <h2>Events Organized</h2>
@@ -36,12 +36,12 @@ const EventsOrganized = () =>{
             </div>
         );
     }
-    
+
     return (
         <div>
             <h2>Events Organized</h2>
-            {events.map((event)=>(
-                <div key={event._id} style={{border: '1px solid #ccc', padding: '15px', margin: '10px 0'}}>
+            {events.map((event) => (
+                <div key={event._id} style={{ border: '1px solid #ccc', padding: '15px', margin: '10px 0' }}>
                     <h3>{event.eventName}</h3>
                     <p><strong>Description:</strong> {event.eventDescription}</p>
                     <p><strong>Type:</strong> {event.eventType}</p>
@@ -59,7 +59,7 @@ const EventsOrganized = () =>{
                     </Link>
                 </div>
             ))}
-        </div>      
+        </div>
     );
 
 }

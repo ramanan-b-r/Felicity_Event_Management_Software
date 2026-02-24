@@ -1,11 +1,11 @@
 import { Navigate } from "react-router-dom"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import api from '../api/axiosmiddleware';
 const CreateEvent = () => {
   const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem("userData"))
-   const [formData, setFormData] = useState({
+  const user = JSON.parse(localStorage.getItem("userData"))
+  const [formData, setFormData] = useState({
     eventName: "",
     eventType: "normal",
     eventStartDate: "",
@@ -30,39 +30,39 @@ const CreateEvent = () => {
   if (!user) {
     return <Navigate to="/" />
   }
-  if(user.role !== "organizer"){
+  if (user.role !== "organizer") {
     return <Navigate to="/" />
   }
- 
-  
-  const changeName = (e) =>{
-    setFormData({...formData, eventName: e.target.value});
+
+
+  const changeName = (e) => {
+    setFormData({ ...formData, eventName: e.target.value });
 
   }
-  const changeType = (e) =>{
-    setFormData({...formData, eventType: e.target.value});
+  const changeType = (e) => {
+    setFormData({ ...formData, eventType: e.target.value });
   }
-  const changeStartDate = (e) =>{
-    setFormData({...formData, eventStartDate: e.target.value});
+  const changeStartDate = (e) => {
+    setFormData({ ...formData, eventStartDate: e.target.value });
   }
-  const changeEndDate = (e) =>{   
-    setFormData({...formData, eventEndDate: e.target.value});
+  const changeEndDate = (e) => {
+    setFormData({ ...formData, eventEndDate: e.target.value });
   }
   const createEventDraft = async () => {
-    try{
+    try {
       formData.registrationDeadline = new Date(formData.eventStartDate);
-      
+
       // Only include merchandiseConfig for merchandise events
-      const eventData = {...formData};
-      if(eventData.eventType !== 'merchandise') {
-         eventData.merchandiseConfig = {};
+      const eventData = { ...formData };
+      if (eventData.eventType !== 'merchandise') {
+        eventData.merchandiseConfig = {};
       }
-      
+
       const response = await api.put('/api/events/createEvent', eventData)
       const eventid = response.data.eventId
       navigate(`/editevent/${eventid}`);
     }
-    catch(error){
+    catch (error) {
       console.log("Error creating event draft:", error);
     }
 
@@ -70,20 +70,20 @@ const CreateEvent = () => {
   return (
     <div>
       <input placeholder="Enter Event Name" onChange={changeName}></input>
-      <br/>
+      <br />
       <select onChange={changeType}>
         <option value="normal">Normal</option>
         <option value="merchandise">Merchandise</option>
       </select>
-      <br/>
+      <br />
       <label>Event Start Date</label>
-      <br/>
+      <br />
       <input type="date" onChange={changeStartDate}></input>
-      <br/>
+      <br />
       <label>Event End Date</label>
-      <br/>
+      <br />
       <input type="date" onChange={changeEndDate}></input>
-      <br/>
+      <br />
       <button onClick={createEventDraft}> Create Event Draft</button>
 
     </div>
