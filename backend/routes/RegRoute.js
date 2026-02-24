@@ -602,7 +602,7 @@ router.post('/markattendance', authMiddleware, async (req, res) => {
         return res.status(403).json({ message: "Only organizers can mark attendance" });
     }
 
-    const { ticketID, eventId } = req.body;
+    const { ticketID, eventId, isManual } = req.body;
     if (!eventId) {
         return res.status(400).json({ message: "Event ID is required" });
     }
@@ -627,6 +627,11 @@ router.post('/markattendance', authMiddleware, async (req, res) => {
 
     registration.hasattended = true;
     registration.attendanceTimestamps = new Date();
+
+    const method = isManual ? "Manual Override" : "QR Scan";
+    if (!registration.auditLog) registration.auditLog = [];
+    registration.auditLog.push(`Attendance marked via ${method} at ${new Date().toISOString()}`);
+
     await registration.save();
 
     return res.status(200).json({ message: "Attendance marked successfully" });

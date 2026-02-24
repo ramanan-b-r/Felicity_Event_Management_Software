@@ -53,7 +53,7 @@ A centralized event management platform built with the MERN stack for IIIT Hyder
 - Participants upload a payment proof image when ordering. The order is set to Pending.
 - Organizers review the proof on the event management page and approve or reject it.
 - On approval: stock is decremented, a QR-coded ticket is generated, and a confirmation email is sent.
-- On rejection: the participant is emailed a rejection notice and stock is unchanged.
+- On rejection: the participant is emailed a rejection notice with comment and stock is unchanged.
 
 **Key decisions**:
 - Stock is only decremented on explicit organizer approval, not at order placement.
@@ -61,7 +61,7 @@ A centralized event management platform built with the MERN stack for IIIT Hyder
 
 #### 2. QR Scanner and Attendance Tracking
 
-**Why chosen**: Manual check-in at large events is slow and error-prone. QR codes allow fast, verifiable entry using only a browser.
+**Why chosen**: Manual check-in at large events is slow and error-prone. QR codes allow easy entry using only a browser.
 
 **How it works**:
 - Every registration has a unique ticket ID (UUID) embedded in a QR code sent by email.

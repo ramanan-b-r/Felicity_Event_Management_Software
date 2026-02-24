@@ -38,6 +38,7 @@ const EditEvents = () => {
     const [participantSearch, setParticipantSearch] = useState("");
     const [participantTypeFilter, setParticipantTypeFilter] = useState("all");
     const [analytics, setAnalytics] = useState(null);
+    const [manualTicketId, setManualTicketId] = useState("");
 
     if (!user) {
         return <Navigate to="/" />
@@ -141,6 +142,27 @@ const EditEvents = () => {
     const setFormFields = (newFields) => {
         setEventDetails({ ...eventDetails, formFields: newFields });
     };
+
+    const handleManualAttendance = async () => {
+        if (!manualTicketId.trim()) {
+            alert("Please enter a ticket ID");
+            return;
+        }
+        try {
+            const response = await api.post('/api/registration/markattendance', {
+                ticketID: manualTicketId.trim(),
+                eventId: eventId,
+                isManual: true
+            });
+            alert(response.data.message);
+            setManualTicketId("");
+            fetchRegistrations();
+        } catch (error) {
+            alert("Error marking attendance: " + (error.response?.data?.message || error.message));
+            console.error("Error marking manual attendance:", error);
+        }
+    };
+
     useEffect(() => {
         fetchEventDetails();
         fetchRegistrations();
@@ -565,6 +587,19 @@ const EditEvents = () => {
             )}
 
             <h2>Live Attendance Dashboard</h2>
+
+            <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ccc' }}>
+                <h3>Manual Attendance Scan</h3>
+                <input
+                    type="text"
+                    placeholder="Enter Ticket ID"
+                    value={manualTicketId}
+                    onChange={(e) => setManualTicketId(e.target.value)}
+                    style={{ marginRight: '10px' }}
+                />
+                <button onClick={handleManualAttendance}>Mark Attendance Manually</button>
+            </div>
+
             {participants.length === 0 ? (
                 <p>No registrations yet</p>
             ) : (

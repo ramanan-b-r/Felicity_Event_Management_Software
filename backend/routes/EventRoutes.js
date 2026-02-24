@@ -382,7 +382,7 @@ router.get('/exportParticipants/:eventId', authMiddleware, async (req, res) => {
             const name = `"${participant.firstName} ${participant.lastName}"`;
             const email = participant.email;
             const regDate = new Date(registration.createdAt).toLocaleDateString();
-            const paymentStatus = registration.formData?.paymentStatus || 'Pending';
+            const paymentStatus = registration.status || 'Pending';
             const participantType = participant.participanttype || 'N/A';
             const attendance = registration.hasattended ? 'Present' : 'Absent';
 
