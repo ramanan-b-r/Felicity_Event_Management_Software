@@ -94,10 +94,7 @@ const sendRejectionEmail = async (organizerEmail, organizerName, comment) => {
 }
 
 const verifyCaptcha = async (token) => {
-    // CAPTCHA DISABLED - Always return true
-    return true;
-
-    /* const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
     try {
 
@@ -107,7 +104,7 @@ const verifyCaptcha = async (token) => {
     } catch (err) {
         console.error("CAPTCHA verification error:", err);
         return false;
-    } */
+    }
 }
 
 const generatePassword = () => {

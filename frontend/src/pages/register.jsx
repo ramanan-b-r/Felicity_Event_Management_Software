@@ -4,13 +4,13 @@ import axios from 'axios';
 const Register = () => {
   const [formData, setFormData] = useState({ role: '', firstName: '', lastName: '', email: '', password: '', contactnumber: '', collegename: '' });
 
-  /* useEffect(() => {
+  useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://www.google.com/recaptcha/api.js';
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
-  }, []); */
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,12 +23,11 @@ const Register = () => {
     const email = formData.email;
     const password = formData.password;
 
-    const captchaToken = "disabled";
-    /* const captchaToken = window.grecaptcha.getResponse();
+    const captchaToken = window.grecaptcha.getResponse();
     if (!captchaToken) {
       alert("Please complete the CAPTCHA");
       return;
-    } */
+    }
 
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/users/register`, { email: formData.email, password: formData.password, firstName: formData.firstName, lastName: formData.lastName, contactnumber: formData.contactnumber, collegename: formData.collegename, captchaToken });
@@ -42,7 +41,7 @@ const Register = () => {
     catch (error) {
       console.error("There was an error!", error);
       alert(`${error.response.data.message}`);
-      // window.grecaptcha.reset();
+      window.grecaptcha.reset();
     }
 
 
@@ -121,8 +120,8 @@ const Register = () => {
         </div>
         <br />
 
-        {/* <div className="g-recaptcha" data-sitekey="6Le7wGcsAAAAAF8J5L9Ba4eMfkvEErzS7PSS4n74"></div>
-        <br /> */}
+        <div className="g-recaptcha" data-sitekey="6Le7wGcsAAAAAF8J5L9Ba4eMfkvEErzS7PSS4n74"></div>
+        <br />
 
         <button type="button" onClick={handleSubmit}>Register</button>
       </form>
